@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D&D Initiative Tracker - DM Control</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading state -->
+    <div id="loading" class="screen active">
+      <div class="loading-spinner"></div>
+      <p>Initializing...</p>
+    </div>
+
+    <!-- Room join screen -->
+    <div id="join-screen" class="screen">
+      <header>
+        <h1>DM Control</h1>
+      </header>
+      <div class="join-container">
+        <div id="scanner-container" class="scanner-container">
+          <video id="scanner-video" autoplay playsinline></video>
+          <div class="scanner-overlay">
+            <div class="scanner-frame"></div>
+          </div>
+        </div>
+        <p class="scanner-instruction">Scan QR code from public display</p>
+        <div class="divider">
+          <span>or enter room code</span>
+        </div>
+        <div class="manual-entry">
+          <input type="text" id="room-code-input" placeholder="XXXXXX" maxlength="6" autocomplete="off">
+          <button id="join-btn" class="btn btn-primary">Join Room</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DM Control Panel -->
+    <div id="control-screen" class="screen">
+      <header class="dm-header">
+        <div class="header-left">
+          <h1>DM Control</h1>
+          <span id="dm-room-id" class="room-badge"></span>
+        </div>
+        <div class="header-controls">
+          <button id="combat-toggle" class="btn btn-combat">Start Combat</button>
+        </div>
+      </header>
+
+      <!-- Timer display -->
+      <div class="timer-bar">
+        <div class="timer-item">
+          <span class="label">Total</span>
+          <span id="dm-total-time" class="value">00:00:00</span>
+        </div>
+        <div class="timer-item">
+          <span class="label">Round <span id="dm-round">0</span></span>
+          <span id="dm-round-time" class="value">00:00</span>
+        </div>
+        <div class="timer-item">
+          <span class="label">Turn</span>
+          <span id="dm-turn-time" class="value">00:00</span>
+        </div>
+      </div>
+
+      <!-- Turn controls -->
+      <div id="turn-controls" class="turn-controls hidden">
+        <button id="prev-turn-btn" class="btn btn-secondary">Prev Turn</button>
+        <button id="next-turn-btn" class="btn btn-primary btn-large">Next Turn</button>
+      </div>
+
+      <!-- Creature list -->
+      <div id="creature-list" class="creature-list">
+        <!-- Creature items rendered here -->
+      </div>
+
+      <!-- Add creature button -->
+      <button id="add-creature-btn" class="btn btn-add">+ Add Creature</button>
+    </div>
+
+    <!-- Add/Edit Creature Modal -->
+    <div id="creature-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2 id="creature-modal-title">Add Creature</h2>
+        <form id="creature-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="creature-name">Name</label>
+              <input type="text" id="creature-name" required>
+            </div>
+            <div class="form-group form-group-small">
+              <label for="creature-icon">Icon</label>
+              <select id="creature-icon">
+                <option value="🧙">🧙</option>
+                <option value="⚔️">⚔️</option>
+                <option value="🛡️">🛡️</option>
+                <option value="🗡️">🗡️</option>
+                <option value="🏹">🏹</option>
+                <option value="🪄">🪄</option>
+                <option value="🐉">🐉</option>
+                <option value="🧟">🧟</option>
+                <option value="👹">👹</option>
+                <option value="👻">👻</option>
+                <option value="🦇">🦇</option>
+                <option value="🐺">🐺</option>
+                <option value="🧝">🧝</option>
+                <option value="🧛">🧛</option>
+                <option value="💀">💀</option>
+                <option value="👤">👤</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group form-group-small">
+              <label for="creature-initiative">Initiative</label>
+              <input type="number" id="creature-initiative" required>
+            </div>
+            <div class="form-group form-group-small">
+              <label for="creature-hp">HP</label>
+              <input type="number" id="creature-hp" required min="0">
+            </div>
+            <div class="form-group form-group-small">
+              <label for="creature-ac">AC</label>
+              <input type="number" id="creature-ac" required min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="creature-is-player">
+              Player Character
+            </label>
+          </div>
+
+          <!-- Attacks section -->
+          <div class="attacks-section">
+            <h3>Attacks (Optional)</h3>
+            <div id="attacks-container"></div>
+            <button type="button" id="add-attack-btn" class="btn btn-secondary btn-small">+ Add Attack</button>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="cancel-creature-btn" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- HP Modal -->
+    <div id="hp-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content hp-modal-content">
+        <h2>Modify HP</h2>
+        <div class="hp-current">
+          <span id="hp-creature-name"></span>
+          <span id="hp-current-value"></span>
+        </div>
+        <div class="hp-actions">
+          <div class="hp-input-group">
+            <label>Set HP to:</label>
+            <input type="number" id="hp-set-value" min="0">
+            <button id="hp-set-btn" class="btn btn-secondary">Update</button>
+          </div>
+          <div class="divider-vertical"></div>
+          <div class="hp-input-group">
+            <label>Amount:</label>
+            <input type="number" id="hp-change-value" min="0">
+            <button id="hp-heal-btn" class="btn btn-heal">Heal</button>
+            <button id="hp-damage-btn" class="btn btn-damage">Damage</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="close-hp-modal-btn" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Modal -->
+    <div id="status-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2>Add Status Effect</h2>
+        <div id="status-creature-name" class="status-target"></div>
+        <div class="status-grid" id="status-grid">
+          <!-- Status options rendered here -->
+        </div>
+        <div class="form-group">
+          <label for="status-rounds">Rounds (leave blank for indefinite):</label>
+          <input type="number" id="status-rounds" min="1" placeholder="Indefinite">
+        </div>
+        <div class="modal-actions">
+          <button id="close-status-modal-btn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clone Modal -->
+    <div id="clone-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2>Clone Creature</h2>
+        <div id="clone-creature-name" class="clone-target"></div>
+        <div class="form-group">
+          <label for="clone-suffix">Custom suffix (optional):</label>
+          <input type="text" id="clone-suffix" placeholder="e.g., Dirty, In Swamp">
+          <small>Leave blank to auto-assign A, B, C...</small>
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-clone-btn" class="btn btn-secondary">Cancel</button>
+          <button id="confirm-clone-btn" class="btn btn-primary">Clone</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
