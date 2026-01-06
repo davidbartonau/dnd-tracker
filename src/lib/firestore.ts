@@ -35,7 +35,11 @@ export async function createRoom(roomId: string, title: string = 'D&D Initiative
 
   console.log('[Firestore] Attempting setDoc with room data:', JSON.stringify(room, null, 2));
   try {
-    await setDoc(roomRef, room);
+    // Add timeout to detect hanging requests (usually means security rules blocking)
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore write timed out after 10s - check security rules in Firebase Console')), 10000)
+    );
+    await Promise.race([setDoc(roomRef, room), timeoutPromise]);
     console.log('[Firestore] setDoc completed successfully');
   } catch (error) {
     console.error('[Firestore] setDoc FAILED:', error);
