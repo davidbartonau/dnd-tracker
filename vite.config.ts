@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         public: resolve(__dirname, 'src/public/index.html'),
         dm: resolve(__dirname, 'src/dm/index.html'),
+        player: resolve(__dirname, 'src/player/index.html'),
       },
     },
   },

@@ -299,6 +299,12 @@ function handleRoomUpdate(room: Room | null) {
   }
 
   currentRoom = room;
+
+  // Start or stop timer based on combat status
+  if (room.state.status === 'running') {
+    startTimerLoop();
+  }
+
   updateUI(room);
 }
 
