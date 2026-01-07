@@ -534,15 +534,16 @@ function renderInitiativeList(state: RoomState) {
       const groupColor = hasGroup ? getGroupColor(creature.groupId!) : '';
 
       const statusBadges = creature.statusEffects
-        .map(
-          (s) => `
-          <span class="status-badge" style="border-color: ${s.color}">
-            <span class="status-icon">${s.icon}</span>
-            <span class="status-name">${s.name}</span>
-            ${s.roundsRemaining !== null ? `<span class="status-rounds">${s.roundsRemaining}</span>` : ''}
-          </span>
-        `
-        )
+        .map((s) => {
+          const showRounds = s.roundsRemaining !== null && !s.hideRounds;
+          return `
+            <span class="status-badge" style="border-color: ${s.color}" title="${s.name}${s.roundsRemaining !== null ? ` (${s.roundsRemaining} rounds)` : ''}">
+              <span class="status-icon">${s.icon}</span>
+              <span class="status-name">${s.name}</span>
+              ${showRounds ? `<span class="rounds-badge">${s.roundsRemaining}</span>` : ''}
+            </span>
+          `;
+        })
         .join('');
 
       const attackBadges = creature.attacks

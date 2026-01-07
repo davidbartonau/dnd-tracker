@@ -329,11 +329,16 @@ body {
   font-size: 0.875rem;
 }
 
-.status-badge .status-rounds {
+.status-badge .status-rounds,
+.status-badge .rounds-badge {
   font-size: 0.625rem;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
+  background: var(--accent-amber, #f59e0b);
+  color: #000;
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.5rem;
+  min-width: 0.875rem;
+  text-align: center;
+  font-weight: 600;
 }
 
 .creature-attacks {

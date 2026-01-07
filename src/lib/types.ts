@@ -8,6 +8,7 @@ export interface StatusEffect {
   icon: string;
   color: string;
   roundsRemaining: number | null; // null = indefinite, must be manually removed
+  hideRounds?: boolean; // Hide the rounds badge even if roundsRemaining is set
 }
 
 // Predefined status effects
