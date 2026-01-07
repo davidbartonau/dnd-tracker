@@ -32,6 +32,8 @@ const headerRoomIdEl = document.getElementById('header-room-id') as HTMLElement;
 const initiativeList = document.getElementById('initiative-list') as HTMLDivElement;
 const roundEndOverlay = document.getElementById('round-end-overlay') as HTMLDivElement;
 const endedRoundEl = document.getElementById('ended-round') as HTMLElement;
+const pcBar = document.getElementById('pc-bar') as HTMLDivElement;
+const pcList = document.getElementById('pc-list') as HTMLDivElement;
 
 // Timer elements
 const totalTimeEl = document.getElementById('total-time') as HTMLElement;
@@ -542,9 +544,36 @@ function getGroupColor(groupId: string): string {
   return `hsl(${hue}, 60%, 50%)`;
 }
 
+// Render PC bar at top
+function renderPCBar(state: RoomState) {
+  const pcs = state.creatures.filter((c) => c.isPlayer);
+
+  if (pcs.length === 0) {
+    pcBar.classList.add('hidden');
+    return;
+  }
+
+  pcBar.classList.remove('hidden');
+  pcList.innerHTML = pcs
+    .map((pc) => {
+      const isCurrent = pc.id === state.currentCreatureId;
+      return `
+        <div class="pc-item ${isCurrent ? 'current-turn' : ''}">
+          <span class="pc-icon">${pc.icon}</span>
+          <span class="pc-name">${pc.displayName || pc.name}</span>
+          <span class="pc-init">${pc.initiative}</span>
+        </div>
+      `;
+    })
+    .join('');
+}
+
 // Render initiative list
 function renderInitiativeList(state: RoomState) {
   const creatures = state.creatures;
+
+  // Also render PC bar
+  renderPCBar(state);
 
   // Group creatures by groupId for visual linking
   const groupedCreatures = creatures.reduce((acc, creature) => {
@@ -566,6 +595,7 @@ function renderInitiativeList(state: RoomState) {
           return `
             <span class="status-badge" style="border-color: ${s.color}" title="${s.name}${s.roundsRemaining !== null ? ` (${s.roundsRemaining} rounds)` : ''}">
               <span class="status-icon">${s.icon}</span>
+              <span class="status-name">${s.name}</span>
               ${showRounds ? `<span class="rounds-badge">${s.roundsRemaining}</span>` : ''}
             </span>
           `;

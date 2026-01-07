@@ -507,27 +507,31 @@ function handleRoomUpdate(room: Room | null) {
 // Update UI based on room state
 function updateUI(room: Room) {
   const state = room.state;
+  const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
 
   // Update combat toggle button
   switch (state.status) {
     case 'setup':
       combatToggleBtn.textContent = 'Start Combat';
-      combatToggleBtn.classList.remove('running');
+      combatToggleBtn.classList.remove('hidden', 'running');
       turnControls.classList.add('hidden');
       break;
     case 'running':
-      combatToggleBtn.textContent = 'Pause';
-      combatToggleBtn.classList.add('running');
+      // Hide the main combat toggle button when running, show turn controls
+      combatToggleBtn.classList.add('hidden');
       turnControls.classList.remove('hidden');
+      if (pauseBtn) pauseBtn.innerHTML = '<span class="turn-icon">⏸</span>';
       break;
     case 'paused':
+      // Show resume button, keep turn controls visible
       combatToggleBtn.textContent = 'Resume';
-      combatToggleBtn.classList.remove('running');
+      combatToggleBtn.classList.remove('hidden', 'running');
       turnControls.classList.remove('hidden');
+      if (pauseBtn) pauseBtn.innerHTML = '<span class="turn-icon">▶</span>';
       break;
     case 'round_end':
       combatToggleBtn.textContent = 'Start Round ' + (state.round + 1);
-      combatToggleBtn.classList.remove('running');
+      combatToggleBtn.classList.remove('hidden', 'running');
       turnControls.classList.add('hidden');
       break;
   }
