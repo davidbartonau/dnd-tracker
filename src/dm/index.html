@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D&D Initiative Tracker - DM Control</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading state -->
+    <div id="loading" class="screen active">
+      <div class="loading-spinner"></div>
+      <p>Initializing...</p>
+    </div>
+
+    <!-- Room join screen -->
+    <div id="join-screen" class="screen">
+      <header>
+        <h1>DM Control</h1>
+      </header>
+      <div class="join-container">
+        <div id="scanner-container" class="scanner-container">
+          <video id="scanner-video" autoplay playsinline></video>
+          <div class="scanner-overlay">
+            <div class="scanner-frame"></div>
+          </div>
+        </div>
+        <p class="scanner-instruction">Scan QR code from public display</p>
+        <div class="divider">
+          <span>or enter room code</span>
+        </div>
+        <div class="manual-entry">
+          <input type="text" id="room-code-input" placeholder="XXXXXX" maxlength="6" autocomplete="off">
+          <button id="join-btn" class="btn btn-primary">Join Room</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DM Control Panel -->
+    <div id="control-screen" class="screen">
+      <header class="dm-header">
+        <div class="header-section header-title">
+          <h1>DM</h1>
+          <!-- Auth section -->
+          <div id="dm-auth-section" class="auth-section">
+            <button id="dm-google-signin" class="btn btn-google-small">Sign In</button>
+          </div>
+          <div id="dm-user-info" class="user-info hidden">
+            <img class="user-avatar" src="" alt="">
+            <button id="dm-signout-btn" class="btn-icon" title="Sign out">✕</button>
+          </div>
+        </div>
+
+        <div class="header-section header-timers">
+          <div class="timer-compact">
+            <span class="timer-label">R<span id="dm-round">0</span></span>
+            <span id="dm-round-time" class="timer-value">00:00</span>
+          </div>
+          <div class="timer-compact">
+            <span class="timer-label">Turn</span>
+            <span id="dm-turn-time" class="timer-value">00:00</span>
+          </div>
+          <div class="timer-compact timer-total">
+            <span id="dm-total-time" class="timer-value">00:00:00</span>
+          </div>
+        </div>
+
+        <div class="header-section header-controls">
+          <div id="turn-controls" class="turn-controls-inline hidden">
+            <button id="prev-turn-btn" class="btn-turn btn-turn-secondary" title="Previous Turn">
+              <span class="turn-icon">◀</span>
+            </button>
+            <button id="pause-btn" class="btn-turn btn-turn-secondary" title="Pause">
+              <span class="turn-icon">⏸</span>
+            </button>
+            <button id="next-turn-btn" class="btn-turn btn-turn-primary" title="Next Turn">
+              <span class="turn-icon">▶</span>
+              <span class="turn-label">Next</span>
+            </button>
+          </div>
+          <button id="combat-toggle" class="btn btn-combat">Start</button>
+        </div>
+      </header>
+
+      <!-- Creature list -->
+      <div id="creature-list" class="creature-list">
+        <!-- Creature items rendered here -->
+      </div>
+
+      <!-- Footer bar -->
+      <div class="dm-footer">
+        <div class="footer-left">
+          <span id="dm-room-id" class="room-badge-footer"></span>
+        </div>
+        <div class="footer-right">
+          <button id="ai-scan-btn" class="btn btn-ai-footer hidden" title="Scan monster stat block with AI">📷</button>
+          <button id="add-creature-btn" class="btn btn-add-footer">+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Creature Modal -->
+    <div id="creature-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2 id="creature-modal-title">Add Creature</h2>
+        <form id="creature-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="creature-name">Name</label>
+              <input type="text" id="creature-name" required>
+            </div>
+            <div class="form-group form-group-small">
+              <label for="creature-icon">Icon</label>
+              <select id="creature-icon">
+                <option value="🧙">🧙</option>
+                <option value="⚔️">⚔️</option>
+                <option value="🛡️">🛡️</option>
+                <option value="🗡️">🗡️</option>
+                <option value="🏹">🏹</option>
+                <option value="🪄">🪄</option>
+                <option value="🐉">🐉</option>
+                <option value="🧟">🧟</option>
+                <option value="👹">👹</option>
+                <option value="👻">👻</option>
+                <option value="🦇">🦇</option>
+                <option value="🐺">🐺</option>
+                <option value="🧝">🧝</option>
+                <option value="🧛">🧛</option>
+                <option value="💀">💀</option>
+                <option value="👤">👤</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group form-group-small">
+              <label for="creature-initiative">Initiative</label>
+              <input type="number" id="creature-initiative" required>
+            </div>
+            <div class="form-group form-group-small">
+              <label for="creature-hp">HP</label>
+              <input type="number" id="creature-hp" required min="0">
+            </div>
+            <div class="form-group form-group-small">
+              <label for="creature-ac">AC</label>
+              <input type="number" id="creature-ac" required min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="creature-is-player">
+              Player Character
+            </label>
+          </div>
+
+          <!-- Attacks section -->
+          <div class="attacks-section">
+            <h3>Attacks (Optional)</h3>
+            <div id="attacks-container"></div>
+            <button type="button" id="add-attack-btn" class="btn btn-secondary btn-small">+ Add Attack</button>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="cancel-creature-btn" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- HP Modal -->
+    <div id="hp-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content hp-modal-content">
+        <h2>Modify HP</h2>
+        <div class="hp-current">
+          <span id="hp-creature-name"></span>
+          <span id="hp-current-value"></span>
+        </div>
+        <div class="hp-actions">
+          <div class="hp-input-group">
+            <label>Set HP to:</label>
+            <input type="number" id="hp-set-value" min="0">
+            <button id="hp-set-btn" class="btn btn-secondary">Update</button>
+          </div>
+          <div class="divider-vertical"></div>
+          <div class="hp-input-group">
+            <label>Amount:</label>
+            <input type="number" id="hp-change-value" min="0">
+            <button id="hp-heal-btn" class="btn btn-heal">Heal</button>
+            <button id="hp-damage-btn" class="btn btn-damage">Damage</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="close-hp-modal-btn" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Modal -->
+    <div id="status-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2 id="status-modal-title">Add Status Effect</h2>
+        <div id="status-creature-name" class="status-target"></div>
+        <div class="status-grid" id="status-grid">
+          <!-- Status options rendered here -->
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="status-rounds">Rounds:</label>
+            <input type="number" id="status-rounds" min="1" placeholder="Indefinite">
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="status-hide-rounds">
+              Hide badge
+            </label>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="close-status-modal-btn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Clear Status Modal -->
+    <div id="clear-status-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-content-small">
+        <h2>Remove Status?</h2>
+        <p id="clear-status-text">Remove <span id="clear-status-name"></span> from <span id="clear-status-creature"></span>?</p>
+        <div class="modal-actions">
+          <button id="cancel-clear-status-btn" class="btn btn-secondary">Cancel</button>
+          <button id="confirm-clear-status-btn" class="btn btn-damage">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clone Modal -->
+    <div id="clone-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2>Clone Creature</h2>
+        <div id="clone-creature-name" class="clone-target"></div>
+        <div class="form-group">
+          <label for="clone-suffix">Custom suffix (optional):</label>
+          <input type="text" id="clone-suffix" placeholder="e.g., Dirty, In Swamp">
+          <small>Leave blank to auto-assign A, B, C...</small>
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-clone-btn" class="btn btn-secondary">Cancel</button>
+          <button id="confirm-clone-btn" class="btn btn-primary">Clone</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Scan Modal -->
+    <div id="ai-scan-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content ai-scan-content">
+        <h2>Scan Monster Stat Block</h2>
+        <p class="ai-scan-description">Take a photo or upload an image of a monster stat block to automatically extract its details.</p>
+
+        <div class="ai-scan-input">
+          <input type="file" id="ai-scan-file" accept="image/*" class="hidden">
+          <button type="button" id="ai-scan-upload-btn" class="btn btn-secondary">📁 Upload Image</button>
+          <button type="button" id="ai-scan-camera-btn" class="btn btn-secondary">📷 Take Photo</button>
+        </div>
+
+        <div id="ai-scan-preview" class="ai-scan-preview hidden">
+          <img id="ai-scan-preview-img" src="" alt="Preview">
+          <button type="button" id="ai-scan-clear-btn" class="btn-icon" title="Clear">✕</button>
+        </div>
+
+        <div id="ai-scan-status" class="ai-scan-status hidden">
+          <div class="loading-spinner"></div>
+          <span>Analyzing image...</span>
+        </div>
+
+        <div id="ai-scan-results" class="ai-scan-results hidden">
+          <h3>Found Monsters</h3>
+          <div id="ai-scan-monsters"></div>
+        </div>
+
+        <div id="ai-scan-error" class="ai-scan-error hidden"></div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancel-ai-scan-btn" class="btn btn-secondary">Close</button>
+          <button type="button" id="start-ai-scan-btn" class="btn btn-primary" disabled>Scan Image</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

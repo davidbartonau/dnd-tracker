@@ -1,0 +1,19 @@
+node_modules/
+dist/
+
+# Environment and credentials - NEVER COMMIT
+.env
+.env.local
+.env.*.local
+.env.production
+*.pem
+*.key
+firebase-credentials.json
+serviceAccountKey.json
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

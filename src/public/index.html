@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D&D Initiative Tracker - Public Display</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading state -->
+    <div id="loading" class="screen active">
+      <div class="loading-spinner"></div>
+      <p>Initializing...</p>
+    </div>
+
+    <!-- Room creation / QR code display -->
+    <div id="room-screen" class="screen">
+      <header>
+        <h1>D&D Initiative Tracker</h1>
+      </header>
+      <div class="qr-container">
+        <div id="qr-code"></div>
+        <p class="room-code">Room Code: <strong id="room-id"></strong></p>
+        <p class="instructions">Scan with your phone or tablet to control</p>
+      </div>
+    </div>
+
+    <!-- Combat tracker display -->
+    <div id="combat-screen" class="screen">
+      <header class="combat-header">
+        <div class="timer-section">
+          <div class="timer total-timer">
+            <span class="timer-label">Total</span>
+            <span id="total-time" class="timer-value">00:00:00</span>
+          </div>
+          <div class="timer round-timer">
+            <span class="timer-label">Round <span id="round-number">0</span></span>
+            <span id="round-time" class="timer-value">00:00</span>
+          </div>
+          <div class="timer turn-timer">
+            <span class="timer-label">Turn</span>
+            <span id="turn-time" class="timer-value">00:00</span>
+          </div>
+        </div>
+        <div class="room-info">
+          <span id="header-room-id" class="small-room-code"></span>
+        </div>
+      </header>
+
+      <main id="initiative-list" class="initiative-list">
+        <!-- Creature cards will be rendered here -->
+      </main>
+
+      <!-- Round end overlay -->
+      <div id="round-end-overlay" class="overlay hidden">
+        <div class="overlay-content">
+          <h2>End of Round <span id="ended-round">0</span></h2>
+          <p>Waiting for DM to start next round...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
