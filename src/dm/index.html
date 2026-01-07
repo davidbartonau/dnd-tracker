@@ -44,7 +44,16 @@
           <h1>DM Control</h1>
           <span id="dm-room-id" class="room-badge"></span>
         </div>
-        <div class="header-controls">
+        <div class="header-right">
+          <!-- Auth section -->
+          <div id="dm-auth-section" class="auth-section">
+            <button id="dm-google-signin" class="btn btn-google-small">Sign In</button>
+          </div>
+          <div id="dm-user-info" class="user-info hidden">
+            <img class="user-avatar" src="" alt="">
+            <span class="user-name"></span>
+            <button id="dm-signout-btn" class="btn-icon" title="Sign out">✕</button>
+          </div>
           <button id="combat-toggle" class="btn btn-combat">Start Combat</button>
         </div>
       </header>
@@ -76,8 +85,11 @@
         <!-- Creature items rendered here -->
       </div>
 
-      <!-- Add creature button -->
-      <button id="add-creature-btn" class="btn btn-add">+ Add Creature</button>
+      <!-- Add creature buttons -->
+      <div class="add-creature-buttons">
+        <button id="add-creature-btn" class="btn btn-add">+ Add Creature</button>
+        <button id="ai-scan-btn" class="btn btn-ai hidden" title="Scan monster stat block with AI">📷 Scan</button>
+      </div>
     </div>
 
     <!-- Add/Edit Creature Modal -->
@@ -211,6 +223,43 @@
         <div class="modal-actions">
           <button id="cancel-clone-btn" class="btn btn-secondary">Cancel</button>
           <button id="confirm-clone-btn" class="btn btn-primary">Clone</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Scan Modal -->
+    <div id="ai-scan-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content ai-scan-content">
+        <h2>Scan Monster Stat Block</h2>
+        <p class="ai-scan-description">Take a photo or upload an image of a monster stat block to automatically extract its details.</p>
+
+        <div class="ai-scan-input">
+          <input type="file" id="ai-scan-file" accept="image/*" class="hidden">
+          <button type="button" id="ai-scan-upload-btn" class="btn btn-secondary">📁 Upload Image</button>
+          <button type="button" id="ai-scan-camera-btn" class="btn btn-secondary">📷 Take Photo</button>
+        </div>
+
+        <div id="ai-scan-preview" class="ai-scan-preview hidden">
+          <img id="ai-scan-preview-img" src="" alt="Preview">
+          <button type="button" id="ai-scan-clear-btn" class="btn-icon" title="Clear">✕</button>
+        </div>
+
+        <div id="ai-scan-status" class="ai-scan-status hidden">
+          <div class="loading-spinner"></div>
+          <span>Analyzing image...</span>
+        </div>
+
+        <div id="ai-scan-results" class="ai-scan-results hidden">
+          <h3>Found Monsters</h3>
+          <div id="ai-scan-monsters"></div>
+        </div>
+
+        <div id="ai-scan-error" class="ai-scan-error hidden"></div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancel-ai-scan-btn" class="btn btn-secondary">Close</button>
+          <button type="button" id="start-ai-scan-btn" class="btn btn-primary" disabled>Scan Image</button>
         </div>
       </div>
     </div>

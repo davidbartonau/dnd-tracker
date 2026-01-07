@@ -57,6 +57,7 @@ export interface Creature {
   attacks: Attack[];
   sortOrder: number; // For manual ordering within same initiative
   isPlayer: boolean; // Players vs monsters (for display purposes)
+  groupId: string | null; // Links cloned creatures together - null for standalone
 }
 
 // Room combat state

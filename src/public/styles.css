@@ -217,6 +217,22 @@ body {
   border-left: 4px solid var(--player-highlight);
 }
 
+.creature-card.has-group {
+  border-left: 5px solid var(--group-color, var(--accent-purple));
+  position: relative;
+}
+
+.creature-card.has-group::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -3px;
+  bottom: -3px;
+  width: 5px;
+  background: var(--group-color, var(--accent-purple));
+  border-radius: 3px 0 0 3px;
+}
+
 .creature-card.unconscious {
   opacity: 0.5;
 }

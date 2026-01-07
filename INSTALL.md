@@ -28,6 +28,7 @@ npm run dev
 The app will be available at:
 - Public Display: http://localhost:3000/public/
 - DM Control: http://localhost:3000/dm/
+- Player View: http://localhost:3000/player/
 
 ## Firebase Setup
 
@@ -123,6 +124,73 @@ service cloud.firestore {
 ```
 
 Click "Publish" to apply the rules.
+
+### Step 6: Enable Google Authentication (Optional)
+
+If you want to use Google sign-in for player identification and AI scanning features:
+
+1. In Firebase Console, go to "Build" → "Authentication"
+2. Click "Get started"
+3. Select "Google" as a sign-in provider
+4. Enable it and configure your project public-facing name
+5. Add your email as the project support email
+6. Click "Save"
+
+### Step 7: Set Up Firebase Functions for AI Scanning (Optional)
+
+The AI scanning feature requires a Firebase Cloud Function to process images. This feature allows logged-in users to scan monster stat blocks and automatically extract their stats.
+
+#### Prerequisites
+
+- Firebase Blaze (pay-as-you-go) plan is required for Cloud Functions
+- An OpenAI-compatible API key (e.g., Google AI Studio API key for Gemini)
+
+#### Deploy the Cloud Function
+
+```bash
+# 1. Navigate to the functions directory
+cd functions
+
+# 2. Install dependencies
+npm install
+
+# 3. Set the AI API key as a Firebase secret
+firebase functions:secrets:set AI_API_KEY
+# Enter your API key when prompted
+
+# 4. (Optional) Set custom AI API URL for non-OpenAI providers
+# For Google AI Studio / Gemini:
+firebase functions:secrets:set AI_API_URL
+# Enter: https://generativelanguage.googleapis.com/v1beta/openai/
+
+# 5. Deploy the function
+firebase deploy --only functions
+```
+
+#### Using Google AI Studio (Gemini)
+
+Google AI Studio provides free API access to Gemini models with generous rate limits:
+
+1. Go to [Google AI Studio](https://aistudio.google.com/)
+2. Click "Get API key" and create a new key
+3. Use this key as your `AI_API_KEY`
+4. Set `AI_API_URL` to: `https://generativelanguage.googleapis.com/v1beta/openai/`
+
+#### Using OpenAI
+
+If you prefer to use OpenAI directly:
+
+1. Get an API key from [OpenAI Platform](https://platform.openai.com/)
+2. Use this key as your `AI_API_KEY`
+3. Don't set `AI_API_URL` (it defaults to OpenAI)
+
+#### Testing the AI Scan Feature
+
+1. Sign in with Google on the DM control page
+2. Click the "📷 Scan" button (appears after signing in)
+3. Upload or take a photo of a monster stat block
+4. The AI will extract the monster's name, HP, AC, and attacks
+5. Click "Add" to add the monster to the initiative tracker
 
 ## Claude Code for Web Setup
 
@@ -295,6 +363,9 @@ export default defineConfig({
 - [ ] Condition toggle (active/unconscious/dead) works
 - [ ] Unconscious creatures are skipped
 - [ ] Round end is detected correctly
+- [ ] Player view shows limited creature info (no HP/AC)
+- [ ] Google sign-in works (if configured)
+- [ ] AI scan feature works for signed-in users (if configured)
 
 ## Troubleshooting
 

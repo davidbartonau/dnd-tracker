@@ -1,6 +1,8 @@
-import { generateClientId } from '../lib/firebase.ts';
+import { generateClientId, initializeFirebase } from '../lib/firebase.ts';
 import { getRoom, subscribeToRoom, sendCommand, updateControllerInfo } from '../lib/firestore.ts';
 import { decodeQRCode, extractRoomIdFromUrl } from '../lib/qr.ts';
+import { initGoogleAuth, signInWithGoogle, signOutUser, onAuthStateChange, type AuthUser } from '../lib/auth.ts';
+import { imageToBase64, scanMonsterImage, type ScannedMonster } from '../lib/ai.ts';
 import {
   Room,
   Creature,
@@ -13,12 +15,14 @@ import {
 let roomId: string | null = null;
 let clientId: string = generateClientId();
 let currentRoom: Room | null = null;
+let currentUser: AuthUser | null = null;
 let scannerStream: MediaStream | null = null;
 let scannerAnimationId: number | null = null;
 let selectedCreatureId: string | null = null;
 let editingCreatureId: string | null = null;
 let selectedStatusName: string | null = null;
 let timerInterval: number | null = null;
+let pendingScannedMonsters: ScannedMonster[] = [];
 
 // DOM Elements
 const loadingScreen = document.getElementById('loading') as HTMLDivElement;
@@ -73,18 +77,55 @@ const confirmCloneBtn = document.getElementById('confirm-clone-btn') as HTMLButt
 
 // Initialize app
 async function init() {
-  // Check if room ID is in URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlRoomId = urlParams.get('room');
+  try {
+    // Initialize Firebase and Auth
+    initializeFirebase();
+    await initGoogleAuth();
 
-  if (urlRoomId) {
-    await joinRoom(urlRoomId);
-  } else {
-    showScreen('join');
-    startScanner();
+    // Listen for auth state changes
+    onAuthStateChange((user) => {
+      currentUser = user;
+      updateAuthUI();
+    });
+
+    // Check if room ID is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRoomId = urlParams.get('room');
+
+    if (urlRoomId) {
+      await joinRoom(urlRoomId);
+    } else {
+      showScreen('join');
+      startScanner();
+    }
+
+    setupEventListeners();
+  } catch (error) {
+    console.error('Failed to initialize:', error);
   }
+}
 
-  setupEventListeners();
+// Update auth UI
+function updateAuthUI() {
+  const authSection = document.getElementById('dm-auth-section');
+  const userInfo = document.getElementById('dm-user-info');
+  const aiScanBtn = document.getElementById('ai-scan-btn');
+
+  if (!authSection || !userInfo || !aiScanBtn) return;
+
+  if (currentUser) {
+    authSection.classList.add('hidden');
+    userInfo.classList.remove('hidden');
+    const avatar = userInfo.querySelector('.user-avatar') as HTMLImageElement;
+    const name = userInfo.querySelector('.user-name') as HTMLElement;
+    if (avatar) avatar.src = currentUser.photoURL || '';
+    if (name) name.textContent = currentUser.displayName || currentUser.email || '';
+    aiScanBtn.classList.remove('hidden');
+  } else {
+    authSection.classList.remove('hidden');
+    userInfo.classList.add('hidden');
+    aiScanBtn.classList.add('hidden');
+  }
 }
 
 // Show a specific screen
@@ -108,6 +149,107 @@ function showScreen(screen: 'loading' | 'join' | 'control') {
 
 // Setup event listeners
 function setupEventListeners() {
+  // Auth buttons
+  const googleSigninBtn = document.getElementById('dm-google-signin');
+  const signoutBtn = document.getElementById('dm-signout-btn');
+
+  googleSigninBtn?.addEventListener('click', async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Sign in failed:', error);
+    }
+  });
+
+  signoutBtn?.addEventListener('click', async () => {
+    try {
+      await signOutUser();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  });
+
+  // AI Scan button
+  const aiScanBtn = document.getElementById('ai-scan-btn');
+  const aiScanModal = document.getElementById('ai-scan-modal');
+  const aiScanFile = document.getElementById('ai-scan-file') as HTMLInputElement;
+  const aiScanUploadBtn = document.getElementById('ai-scan-upload-btn');
+  const aiScanCameraBtn = document.getElementById('ai-scan-camera-btn');
+  const aiScanPreview = document.getElementById('ai-scan-preview');
+  const aiScanPreviewImg = document.getElementById('ai-scan-preview-img') as HTMLImageElement;
+  const aiScanClearBtn = document.getElementById('ai-scan-clear-btn');
+  const startAiScanBtn = document.getElementById('start-ai-scan-btn') as HTMLButtonElement;
+  const cancelAiScanBtn = document.getElementById('cancel-ai-scan-btn');
+
+  let selectedAiScanFile: File | null = null;
+
+  aiScanBtn?.addEventListener('click', () => {
+    if (!currentUser) {
+      alert('Please sign in to use AI scanning');
+      return;
+    }
+    // Reset modal state
+    selectedAiScanFile = null;
+    aiScanPreview?.classList.add('hidden');
+    startAiScanBtn.disabled = true;
+    document.getElementById('ai-scan-status')?.classList.add('hidden');
+    document.getElementById('ai-scan-results')?.classList.add('hidden');
+    document.getElementById('ai-scan-error')?.classList.add('hidden');
+    if (aiScanFile) aiScanFile.value = '';
+    showModal(aiScanModal as HTMLDivElement);
+  });
+
+  aiScanUploadBtn?.addEventListener('click', () => {
+    aiScanFile?.click();
+  });
+
+  aiScanFile?.addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) {
+      selectedAiScanFile = file;
+      const url = URL.createObjectURL(file);
+      if (aiScanPreviewImg) aiScanPreviewImg.src = url;
+      aiScanPreview?.classList.remove('hidden');
+      startAiScanBtn.disabled = false;
+    }
+  });
+
+  aiScanCameraBtn?.addEventListener('click', () => {
+    // Create file input that opens camera on mobile
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        selectedAiScanFile = file;
+        const url = URL.createObjectURL(file);
+        if (aiScanPreviewImg) aiScanPreviewImg.src = url;
+        aiScanPreview?.classList.remove('hidden');
+        startAiScanBtn.disabled = false;
+      }
+    };
+    input.click();
+  });
+
+  aiScanClearBtn?.addEventListener('click', () => {
+    selectedAiScanFile = null;
+    aiScanPreview?.classList.add('hidden');
+    startAiScanBtn.disabled = true;
+    if (aiScanFile) aiScanFile.value = '';
+  });
+
+  startAiScanBtn?.addEventListener('click', async () => {
+    if (selectedAiScanFile) {
+      await processAiScan(selectedAiScanFile);
+    }
+  });
+
+  cancelAiScanBtn?.addEventListener('click', () => {
+    hideModal(aiScanModal as HTMLDivElement);
+  });
+
   // Join button
   joinBtn.addEventListener('click', async () => {
     const code = roomCodeInput.value.trim().toUpperCase();
@@ -343,21 +485,43 @@ function updateUI(room: Room) {
   renderCreatureList(state.creatures, state.currentCreatureId);
 }
 
+// Generate consistent color from groupId
+function getGroupColor(groupId: string): string {
+  let hash = 0;
+  for (let i = 0; i < groupId.length; i++) {
+    hash = groupId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 60%, 50%)`;
+}
+
 // Render creature list
 function renderCreatureList(creatures: Creature[], currentCreatureId: string | null) {
+  // Group creatures by groupId for visual linking
+  const groupedCreatures = creatures.reduce((acc, creature) => {
+    if (creature.groupId) {
+      acc[creature.groupId] = (acc[creature.groupId] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
   creatureList.innerHTML = creatures
     .map((creature) => {
       const isCurrent = creature.id === currentCreatureId;
       const hpPercent = (creature.currentHp / creature.maxHp) * 100;
       const hpClass = hpPercent <= 25 ? 'critical' : hpPercent <= 50 ? 'damaged' : '';
+      const hasGroup = creature.groupId && groupedCreatures[creature.groupId] > 1;
+      const groupColor = hasGroup ? getGroupColor(creature.groupId!) : '';
 
       const statusIcons = creature.statusEffects
         .map((s) => `<span class="status-icon" title="${s.name}">${s.icon}</span>`)
         .join('');
 
       return `
-        <div class="creature-item ${isCurrent ? 'current-turn' : ''} ${creature.isPlayer ? 'is-player' : ''} ${creature.condition}"
-             data-creature-id="${creature.id}">
+        <div class="creature-item ${isCurrent ? 'current-turn' : ''} ${creature.isPlayer ? 'is-player' : ''} ${creature.condition} ${hasGroup ? 'has-group' : ''}"
+             data-creature-id="${creature.id}"
+             data-group-id="${creature.groupId || ''}"
+             ${hasGroup ? `style="--group-color: ${groupColor}"` : ''}>
           <div class="initiative">${creature.initiative}</div>
           <div class="icon">${creature.icon}</div>
           <div class="details">
@@ -591,6 +755,7 @@ async function saveCreature() {
           statusEffects: [],
           attacks,
           isPlayer,
+          groupId: null,
         },
       },
       clientId,
@@ -705,6 +870,118 @@ function formatTime(ms: number, includeHours: boolean = false): string {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// Process AI scan
+async function processAiScan(file: File) {
+  const aiScanModal = document.getElementById('ai-scan-modal') as HTMLDivElement;
+  const aiScanStatus = document.getElementById('ai-scan-status') as HTMLDivElement;
+  const aiScanResults = document.getElementById('ai-scan-results') as HTMLDivElement;
+  const aiScanMonstersContainer = document.getElementById('ai-scan-monsters') as HTMLDivElement;
+  const aiScanError = document.getElementById('ai-scan-error') as HTMLDivElement;
+
+  try {
+    // Show status, hide results and error
+    aiScanStatus.classList.remove('hidden');
+    aiScanResults.classList.add('hidden');
+    aiScanError.classList.add('hidden');
+
+    const { base64, mimeType } = await imageToBase64(file);
+    const result = await scanMonsterImage(base64, mimeType);
+
+    // Hide status after scan
+    aiScanStatus.classList.add('hidden');
+
+    if (result.error) {
+      aiScanError.textContent = result.error;
+      aiScanError.classList.remove('hidden');
+      return;
+    }
+
+    if (result.monsters.length === 0) {
+      aiScanError.textContent = 'No monsters found in image. Try a clearer photo of a stat block.';
+      aiScanError.classList.remove('hidden');
+      return;
+    }
+
+    pendingScannedMonsters = result.monsters;
+
+    // Render scanned monsters
+    aiScanMonstersContainer.innerHTML = result.monsters
+      .map((monster, index) => `
+        <div class="scanned-monster" data-index="${index}">
+          <span class="monster-icon">${monster.icon}</span>
+          <div class="monster-info">
+            <div class="monster-name">${monster.name}</div>
+            <div class="monster-stats">
+              <span class="hp">HP: ${monster.maxHp}</span>
+              <span class="ac">AC: ${monster.ac}</span>
+              ${monster.attacks.length > 0 ? `<span>${monster.attacks.length} attack(s)</span>` : ''}
+            </div>
+          </div>
+          <button class="btn btn-primary btn-small add-scanned-btn" data-index="${index}">Add</button>
+        </div>
+      `)
+      .join('');
+
+    // Add button to add all
+    if (result.monsters.length > 1) {
+      aiScanMonstersContainer.innerHTML += `
+        <button class="btn btn-primary add-all-scanned-btn" style="width: 100%; margin-top: 0.5rem;">Add All (${result.monsters.length})</button>
+      `;
+    }
+
+    aiScanResults.classList.remove('hidden');
+
+    // Add click handlers
+    aiScanMonstersContainer.querySelectorAll('.add-scanned-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const index = parseInt((btn as HTMLButtonElement).dataset.index!);
+        await addScannedMonster(pendingScannedMonsters[index]);
+        (btn as HTMLButtonElement).disabled = true;
+        (btn as HTMLButtonElement).textContent = 'Added';
+      });
+    });
+
+    aiScanMonstersContainer.querySelector('.add-all-scanned-btn')?.addEventListener('click', async () => {
+      for (const monster of pendingScannedMonsters) {
+        await addScannedMonster(monster);
+      }
+      hideModal(aiScanModal);
+    });
+  } catch (error) {
+    console.error('AI scan error:', error);
+    aiScanStatus.classList.add('hidden');
+    aiScanError.textContent = error instanceof Error ? error.message : 'Unknown error occurred';
+    aiScanError.classList.remove('hidden');
+  }
+}
+
+// Add scanned monster to initiative
+async function addScannedMonster(monster: ScannedMonster) {
+  if (!roomId) return;
+
+  await sendCommand(roomId, {
+    type: 'ADD_CREATURE',
+    payload: {
+      creature: {
+        name: monster.name,
+        displayName: monster.name,
+        initiative: monster.initiative || 0,
+        icon: monster.icon,
+        maxHp: monster.maxHp,
+        currentHp: monster.maxHp,
+        ac: monster.ac,
+        condition: 'active',
+        statusEffects: [],
+        attacks: monster.attacks,
+        isPlayer: false,
+        groupId: null,
+      },
+    },
+    clientId,
+  });
 }
 
 // Start the app

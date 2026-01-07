@@ -173,11 +173,31 @@ async function processCommand(cmd: CommandWithId) {
       const payload = cmd.payload as CloneCreaturePayload;
       const original = creatures.find((c) => c.id === payload.creatureId);
       if (original) {
-        const cloneCount = creatures.filter((c) => c.name === original.name).length;
-        const suffix = payload.suffix || String.fromCharCode(65 + cloneCount); // A, B, C...
+        // Create or use existing groupId to link cloned creatures
+        const groupId = original.groupId || generateId();
+
+        // Update original with groupId if it didn't have one
+        if (!original.groupId) {
+          original.groupId = groupId;
+          // Update display name for original if it doesn't have a suffix yet
+          const existingClones = creatures.filter(
+            (c) => c.name === original.name && c.id !== original.id
+          );
+          if (existingClones.length === 0 && !original.displayName?.includes(' ')) {
+            original.displayName = `${original.name} A`;
+          }
+        }
+
+        // Count existing clones to determine suffix
+        const cloneCount = creatures.filter(
+          (c) => c.groupId === groupId || c.name === original.name
+        ).length;
+        const suffix = payload.suffix || String.fromCharCode(64 + cloneCount); // A, B, C...
+
         const clone: Creature = {
           ...original,
           id: generateId(),
+          groupId: groupId,
           displayName: `${original.name} ${suffix}`,
           currentHp: original.maxHp,
           condition: 'active',
@@ -483,15 +503,35 @@ function formatTime(ms: number, includeHours: boolean = false): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+// Generate consistent color from groupId
+function getGroupColor(groupId: string): string {
+  let hash = 0;
+  for (let i = 0; i < groupId.length; i++) {
+    hash = groupId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 60%, 50%)`;
+}
+
 // Render initiative list
 function renderInitiativeList(state: RoomState) {
   const creatures = state.creatures;
+
+  // Group creatures by groupId for visual linking
+  const groupedCreatures = creatures.reduce((acc, creature) => {
+    if (creature.groupId) {
+      acc[creature.groupId] = (acc[creature.groupId] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
 
   initiativeList.innerHTML = creatures
     .map((creature) => {
       const isCurrent = creature.id === state.currentCreatureId;
       const hpPercent = (creature.currentHp / creature.maxHp) * 100;
       const hpClass = hpPercent <= 25 ? 'critical' : hpPercent <= 50 ? 'damaged' : '';
+      const hasGroup = creature.groupId && groupedCreatures[creature.groupId] > 1;
+      const groupColor = hasGroup ? getGroupColor(creature.groupId!) : '';
 
       const statusBadges = creature.statusEffects
         .map(
@@ -522,7 +562,8 @@ function renderInitiativeList(state: RoomState) {
         .join('');
 
       return `
-        <div class="creature-card ${isCurrent ? 'current-turn' : ''} ${creature.isPlayer ? 'is-player' : ''} ${creature.condition}">
+        <div class="creature-card ${isCurrent ? 'current-turn' : ''} ${creature.isPlayer ? 'is-player' : ''} ${creature.condition} ${hasGroup ? 'has-group' : ''}"
+             ${hasGroup ? `style="--group-color: ${groupColor}"` : ''}>
           <div class="creature-initiative">${creature.initiative}</div>
           <div class="creature-icon">${creature.icon}</div>
           <div class="creature-info">
