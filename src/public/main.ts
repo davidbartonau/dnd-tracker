@@ -1,5 +1,5 @@
 import { generateRoomId } from '../lib/firebase.ts';
-import { createRoom, subscribeToRoom, subscribeToCommands, deleteCommand, updateRoomState, updateCreatures } from '../lib/firestore.ts';
+import { createRoom, getRoom, subscribeToRoom, subscribeToCommands, deleteCommand, updateRoomState, updateCreatures } from '../lib/firestore.ts';
 import { generateQRCode, buildDmUrl } from '../lib/qr.ts';
 import {
   Room,
@@ -42,9 +42,27 @@ const roundNumberEl = document.getElementById('round-number') as HTMLElement;
 // Initialize app
 async function init() {
   try {
-    // Create a new room
-    roomId = generateRoomId();
-    await createRoom(roomId);
+    // Check for room ID in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRoomId = urlParams.get('room');
+
+    if (urlRoomId) {
+      // Try to reconnect to existing room
+      const existingRoom = await getRoom(urlRoomId);
+      if (existingRoom) {
+        roomId = urlRoomId;
+      } else {
+        // Room doesn't exist, create a new one
+        roomId = generateRoomId();
+        await createRoom(roomId);
+        updateUrlWithRoom(roomId);
+      }
+    } else {
+      // No room in URL, create a new one
+      roomId = generateRoomId();
+      await createRoom(roomId);
+      updateUrlWithRoom(roomId);
+    }
 
     // Display QR code
     const dmUrl = buildDmUrl(roomId);
@@ -69,6 +87,13 @@ async function init() {
     console.error('Failed to initialize:', error);
     loadingScreen.innerHTML = '<p>Failed to initialize. Please refresh.</p>';
   }
+}
+
+// Update URL with room ID without page reload
+function updateUrlWithRoom(id: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('room', id);
+  window.history.replaceState({}, '', url.toString());
 }
 
 // Show a specific screen
