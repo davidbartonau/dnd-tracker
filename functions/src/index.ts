@@ -65,6 +65,9 @@ function getAIClient(): OpenAI {
 // Cloud Function to scan monster image
 export const scanMonsterImage = functions
   .region(REGION)
+  .runWith({
+    secrets: ["AI_API_KEY"],
+  })
   .https.onCall(async (data, context) => {
   // Check authentication
   if (!context.auth) {

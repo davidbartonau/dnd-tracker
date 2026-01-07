@@ -94,6 +94,9 @@ function getAIClient() {
 // Cloud Function to scan monster image
 exports.scanMonsterImage = functions
     .region(REGION)
+    .runWith({
+    secrets: ["AI_API_KEY"],
+})
     .https.onCall(async (data, context) => {
     var _a, _b;
     // Check authentication
