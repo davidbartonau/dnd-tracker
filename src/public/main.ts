@@ -557,8 +557,6 @@ function renderInitiativeList(state: RoomState) {
   initiativeList.innerHTML = creatures
     .map((creature) => {
       const isCurrent = creature.id === state.currentCreatureId;
-      const hpPercent = (creature.currentHp / creature.maxHp) * 100;
-      const hpClass = hpPercent <= 25 ? 'critical' : hpPercent <= 50 ? 'damaged' : '';
       const hasGroup = creature.groupId && groupedCreatures[creature.groupId] > 1;
       const groupColor = hasGroup ? getGroupColor(creature.groupId!) : '';
 
@@ -568,27 +566,10 @@ function renderInitiativeList(state: RoomState) {
           return `
             <span class="status-badge" style="border-color: ${s.color}" title="${s.name}${s.roundsRemaining !== null ? ` (${s.roundsRemaining} rounds)` : ''}">
               <span class="status-icon">${s.icon}</span>
-              <span class="status-name">${s.name}</span>
               ${showRounds ? `<span class="rounds-badge">${s.roundsRemaining}</span>` : ''}
             </span>
           `;
         })
-        .join('');
-
-      const attackBadges = creature.attacks
-        .map(
-          (a) => `
-          <span class="attack-badge">
-            ${a.name}
-            <span class="attack-tooltip">
-              <div><strong>${a.name}</strong></div>
-              <div>+${a.attackBonus} to hit</div>
-              <div>${a.damage} damage</div>
-              ${a.details ? `<div>${a.details}</div>` : ''}
-            </span>
-          </span>
-        `
-        )
         .join('');
 
       return `
@@ -602,18 +583,9 @@ function renderInitiativeList(state: RoomState) {
               ${creature.isPlayer ? '<span class="pc-badge">PC</span>' : ''}
             </div>
             ${creature.displayName && creature.displayName !== creature.name ? `<div class="creature-display-name">${creature.name}</div>` : ''}
-            <div class="creature-stats">
-              <div class="stat hp-stat ${hpClass}">
-                <span class="stat-label">HP</span>
-                <span class="stat-value">${creature.currentHp}/${creature.maxHp}</span>
-              </div>
-              <div class="stat ac-stat">
-                <span class="stat-label">AC</span>
-                <span class="stat-value">${creature.ac}</span>
-              </div>
-            </div>
-            ${statusBadges ? `<div class="creature-statuses">${statusBadges}</div>` : ''}
-            ${attackBadges ? `<div class="creature-attacks">${attackBadges}</div>` : ''}
+          </div>
+          <div class="creature-statuses">
+            ${statusBadges}
           </div>
         </div>
       `;

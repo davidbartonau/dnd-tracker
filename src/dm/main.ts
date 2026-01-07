@@ -109,22 +109,28 @@ async function init() {
 function updateAuthUI() {
   const authSection = document.getElementById('dm-auth-section');
   const userInfo = document.getElementById('dm-user-info');
-  const aiScanBtn = document.getElementById('ai-scan-btn');
+  const aiScanBtn = document.getElementById('ai-scan-btn') as HTMLButtonElement;
 
   if (!authSection || !userInfo || !aiScanBtn) return;
 
   if (currentUser) {
+    // Logged in - hide sign in, show user info, enable AI scan
     authSection.classList.add('hidden');
     userInfo.classList.remove('hidden');
     const avatar = userInfo.querySelector('.user-avatar') as HTMLImageElement;
     const name = userInfo.querySelector('.user-name') as HTMLElement;
     if (avatar) avatar.src = currentUser.photoURL || '';
     if (name) name.textContent = currentUser.displayName || currentUser.email || '';
-    aiScanBtn.classList.remove('hidden');
+    aiScanBtn.disabled = false;
+    aiScanBtn.classList.remove('disabled');
+    aiScanBtn.title = 'Scan Monster Image';
   } else {
+    // Not logged in - show sign in, hide user info, disable AI scan
     authSection.classList.remove('hidden');
     userInfo.classList.add('hidden');
-    aiScanBtn.classList.add('hidden');
+    aiScanBtn.disabled = true;
+    aiScanBtn.classList.add('disabled');
+    aiScanBtn.title = 'Sign in to use AI scanning';
   }
 }
 

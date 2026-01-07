@@ -339,12 +339,14 @@ body {
   cursor: pointer;
 }
 
-.btn-ai-footer:hover {
+.btn-ai-footer:hover:not(:disabled) {
   background: #7c3aed;
 }
 
-.btn-ai-footer.hidden {
-  display: none;
+.btn-ai-footer:disabled,
+.btn-ai-footer.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Buttons */
@@ -436,10 +438,10 @@ body {
 .creature-item {
   background: var(--bg-card);
   border-radius: 0.75rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   cursor: grab;
   border: 2px solid transparent;
   transition: all 0.2s;
@@ -487,15 +489,15 @@ body {
 }
 
 .creature-item .initiative {
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  min-width: 2rem;
+  min-width: 2.5rem;
   text-align: center;
   color: var(--accent-purple);
 }
 
 .creature-item .icon {
-  font-size: 1.25rem;
+  font-size: 2rem;
 }
 
 .creature-item .details {
@@ -503,18 +505,18 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.25rem;
 }
 
 .creature-item .name-row {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .creature-item .name {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -551,8 +553,8 @@ body {
 
 .creature-item .stats {
   display: flex;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  gap: 0.75rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   align-items: center;
 }
@@ -560,11 +562,11 @@ body {
 .creature-item .stat-item {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
 }
 
 .creature-item .stat-icon {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
 }
 
 .creature-item .hp {
