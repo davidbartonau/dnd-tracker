@@ -41,6 +41,8 @@ const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const openai_1 = __importDefault(require("openai"));
 admin.initializeApp();
+// Get region from environment or default to australia-southeast1
+const REGION = process.env.FUNCTIONS_REGION || "australia-southeast1";
 // System prompt for monster extraction
 const SYSTEM_PROMPT = `You are a D&D monster stat block parser. Analyze the provided image and extract monster information.
 
@@ -90,7 +92,9 @@ function getAIClient() {
     });
 }
 // Cloud Function to scan monster image
-exports.scanMonsterImage = functions.https.onCall(async (data, context) => {
+exports.scanMonsterImage = functions
+    .region(REGION)
+    .https.onCall(async (data, context) => {
     var _a, _b;
     // Check authentication
     if (!context.auth) {

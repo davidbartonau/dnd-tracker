@@ -22,8 +22,9 @@ let functions: ReturnType<typeof getFunctions> | null = null;
 function getFirebaseFunctions() {
   if (!functions) {
     const app = initializeFirebase();
-    // Explicitly specify us-central1 region to match deployed function
-    functions = getFunctions(app, 'us-central1');
+    // Use region from environment or default to australia-southeast1
+    const region = import.meta.env.VITE_FUNCTIONS_REGION || 'australia-southeast1';
+    functions = getFunctions(app, region);
   }
   return functions;
 }

@@ -4,10 +4,8 @@ import OpenAI from "openai";
 
 admin.initializeApp();
 
-// CORS configuration for callable functions
-const corsOptions = {
-  origin: true, // Allow all origins (Firebase handles auth separately)
-};
+// Get region from environment or default to australia-southeast1
+const REGION = process.env.FUNCTIONS_REGION || "australia-southeast1";
 
 // System prompt for monster extraction
 const SYSTEM_PROMPT = `You are a D&D monster stat block parser. Analyze the provided image and extract monster information.
@@ -65,7 +63,9 @@ function getAIClient(): OpenAI {
 }
 
 // Cloud Function to scan monster image
-export const scanMonsterImage = functions.https.onCall(async (data, context) => {
+export const scanMonsterImage = functions
+  .region(REGION)
+  .https.onCall(async (data, context) => {
   // Check authentication
   if (!context.auth) {
     throw new functions.https.HttpsError(
