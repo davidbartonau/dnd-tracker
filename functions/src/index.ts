@@ -66,7 +66,7 @@ function getAIClient(): OpenAI {
 export const scanMonsterImage = functions
   .region(REGION)
   .runWith({
-    secrets: ["AI_API_KEY"],
+    secrets: ["AI_API_KEY", "AI_BASE_URL"],
   })
   .https.onCall(async (data, context) => {
   // Check authentication
