@@ -385,10 +385,14 @@ function setupEventListeners() {
 
   confirmCloneBtn.addEventListener('click', async () => {
     if (!roomId || !selectedCreatureId) return;
-    const suffix = cloneSuffixInput.value.trim() || undefined;
+    const suffix = cloneSuffixInput.value.trim();
+    const payload: { creatureId: string; suffix?: string } = { creatureId: selectedCreatureId };
+    if (suffix) {
+      payload.suffix = suffix;
+    }
     await sendCommand(roomId, {
       type: 'CLONE_CREATURE',
-      payload: { creatureId: selectedCreatureId, suffix },
+      payload,
       clientId,
     });
     hideModal(cloneModal);
@@ -579,6 +583,7 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
           <div class="details">
             <div class="name-row">
               <span class="name" data-action="edit">${creature.displayName || creature.name}</span>
+              ${creature.isPlayer ? '<span class="pc-badge">PC</span>' : ''}
               <span class="edit-btn" data-action="edit">✏️</span>
             </div>
             <div class="stats">

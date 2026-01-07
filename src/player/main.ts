@@ -246,7 +246,6 @@ function renderInitiativeList(creatures: Creature[], currentCreatureId: string |
           return `
             <span class="status-badge" style="border-color: ${s.color}" title="${s.name}${s.roundsRemaining !== null ? ` (${s.roundsRemaining} rounds)` : ''}">
               <span class="status-icon">${s.icon}</span>
-              <span class="status-name">${s.name}</span>
               ${showRounds ? `<span class="rounds-badge">${s.roundsRemaining}</span>` : ''}
             </span>
           `;
@@ -258,8 +257,13 @@ function renderInitiativeList(creatures: Creature[], currentCreatureId: string |
           <div class="creature-initiative">${creature.initiative}</div>
           <div class="creature-icon">${creature.icon}</div>
           <div class="creature-info">
-            <div class="creature-name">${creature.displayName || creature.name}</div>
-            ${statusBadges ? `<div class="creature-statuses">${statusBadges}</div>` : ''}
+            <div class="creature-name">
+              ${creature.displayName || creature.name}
+              ${creature.isPlayer ? '<span class="pc-badge">PC</span>' : ''}
+            </div>
+          </div>
+          <div class="creature-statuses">
+            ${statusBadges}
           </div>
         </div>
       `;

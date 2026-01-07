@@ -597,7 +597,10 @@ function renderInitiativeList(state: RoomState) {
           <div class="creature-initiative">${creature.initiative}</div>
           <div class="creature-icon">${creature.icon}</div>
           <div class="creature-info">
-            <div class="creature-name">${creature.displayName || creature.name}</div>
+            <div class="creature-name">
+              ${creature.displayName || creature.name}
+              ${creature.isPlayer ? '<span class="pc-badge">PC</span>' : ''}
+            </div>
             ${creature.displayName && creature.displayName !== creature.name ? `<div class="creature-display-name">${creature.name}</div>` : ''}
             <div class="creature-stats">
               <div class="stat hp-stat ${hpClass}">
