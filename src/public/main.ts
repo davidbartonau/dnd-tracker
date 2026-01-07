@@ -45,12 +45,15 @@ async function init() {
     // Check for room ID in URL params
     const urlParams = new URLSearchParams(window.location.search);
     const urlRoomId = urlParams.get('room');
+    console.log('Init - URL room param:', urlRoomId);
 
     if (urlRoomId) {
       // Try to reconnect to existing room
       const existingRoom = await getRoom(urlRoomId);
+      console.log('Checking existing room:', urlRoomId, 'exists:', !!existingRoom);
       if (existingRoom) {
         roomId = urlRoomId;
+        console.log('Reconnected to existing room:', roomId);
       } else {
         // Room doesn't exist, create a new one
         roomId = generateRoomId();
@@ -94,6 +97,7 @@ function updateUrlWithRoom(id: string) {
   const url = new URL(window.location.href);
   url.searchParams.set('room', id);
   window.history.replaceState({}, '', url.toString());
+  console.log('Updated URL to:', url.toString());
 }
 
 // Show a specific screen
