@@ -4,6 +4,11 @@ import OpenAI from "openai";
 
 admin.initializeApp();
 
+// CORS configuration for callable functions
+const corsOptions = {
+  origin: true, // Allow all origins (Firebase handles auth separately)
+};
+
 // System prompt for monster extraction
 const SYSTEM_PROMPT = `You are a D&D monster stat block parser. Analyze the provided image and extract monster information.
 

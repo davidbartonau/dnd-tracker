@@ -22,7 +22,8 @@ let functions: ReturnType<typeof getFunctions> | null = null;
 function getFirebaseFunctions() {
   if (!functions) {
     const app = initializeFirebase();
-    functions = getFunctions(app);
+    // Explicitly specify us-central1 region to match deployed function
+    functions = getFunctions(app, 'us-central1');
   }
   return functions;
 }
