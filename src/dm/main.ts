@@ -78,6 +78,12 @@ const confirmCloneBtn = document.getElementById('confirm-clone-btn') as HTMLButt
 // Initialize app
 async function init() {
   try {
+    // Set build info
+    const buildInfoEl = document.getElementById('build-info');
+    if (buildInfoEl) {
+      buildInfoEl.textContent = `${__BUILD_DATE__} (${__BUILD_SHA__})`;
+    }
+
     // Initialize Firebase and Auth
     initializeFirebase();
     await initGoogleAuth();
@@ -404,27 +410,67 @@ function setupEventListeners() {
     hideModal(cloneModal);
   });
 
-  // Clear status modal
-  const cancelClearStatusBtn = document.getElementById('cancel-clear-status-btn');
-  const confirmClearStatusBtn = document.getElementById('confirm-clear-status-btn');
-  const clearStatusModal = document.getElementById('clear-status-modal') as HTMLDivElement;
+  // Edit status modal
+  const cancelEditStatusBtn = document.getElementById('cancel-edit-status-btn');
+  const removeStatusBtn = document.getElementById('remove-status-btn');
+  const saveStatusBtn = document.getElementById('save-status-btn');
+  const editStatusModal = document.getElementById('edit-status-modal') as HTMLDivElement;
 
-  cancelClearStatusBtn?.addEventListener('click', () => {
-    hideModal(clearStatusModal);
+  cancelEditStatusBtn?.addEventListener('click', () => {
+    hideModal(editStatusModal);
   });
 
-  confirmClearStatusBtn?.addEventListener('click', async () => {
-    if (!roomId || !clearStatusCreatureId || !clearStatusId) return;
+  removeStatusBtn?.addEventListener('click', async () => {
+    if (!roomId || !editStatusCreatureId || !editStatusId) return;
 
     await sendCommand(roomId, {
       type: 'REMOVE_STATUS',
-      payload: { creatureId: clearStatusCreatureId, statusId: clearStatusId },
+      payload: { creatureId: editStatusCreatureId, statusId: editStatusId },
       clientId,
     });
 
-    hideModal(clearStatusModal);
-    clearStatusCreatureId = null;
-    clearStatusId = null;
+    hideModal(editStatusModal);
+    editStatusCreatureId = null;
+    editStatusId = null;
+  });
+
+  saveStatusBtn?.addEventListener('click', async () => {
+    if (!roomId || !editStatusCreatureId || !editStatusId) return;
+
+    const creature = currentRoom?.state.creatures.find((c) => c.id === editStatusCreatureId);
+    if (!creature) return;
+
+    const status = creature.statusEffects.find((s) => s.id === editStatusId);
+    if (!status) return;
+
+    const roundsInput = document.getElementById('edit-status-rounds') as HTMLInputElement;
+    const newRounds = roundsInput.value ? parseInt(roundsInput.value) : null;
+
+    // Update status by removing and re-adding with new rounds
+    await sendCommand(roomId, {
+      type: 'REMOVE_STATUS',
+      payload: { creatureId: editStatusCreatureId, statusId: editStatusId },
+      clientId,
+    });
+
+    await sendCommand(roomId, {
+      type: 'ADD_STATUS',
+      payload: {
+        creatureId: editStatusCreatureId,
+        status: {
+          name: status.name,
+          icon: status.icon,
+          color: status.color,
+          roundsRemaining: newRounds,
+          hideRounds: status.hideRounds,
+        },
+      },
+      clientId,
+    });
+
+    hideModal(editStatusModal);
+    editStatusCreatureId = null;
+    editStatusId = null;
   });
 
   // Modal backdrop clicks
@@ -507,27 +553,31 @@ function handleRoomUpdate(room: Room | null) {
 // Update UI based on room state
 function updateUI(room: Room) {
   const state = room.state;
+  const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
 
   // Update combat toggle button
   switch (state.status) {
     case 'setup':
       combatToggleBtn.textContent = 'Start Combat';
-      combatToggleBtn.classList.remove('running');
+      combatToggleBtn.classList.remove('hidden', 'running');
       turnControls.classList.add('hidden');
       break;
     case 'running':
-      combatToggleBtn.textContent = 'Pause';
-      combatToggleBtn.classList.add('running');
+      // Hide the main combat toggle button when running, show turn controls
+      combatToggleBtn.classList.add('hidden');
       turnControls.classList.remove('hidden');
+      if (pauseBtn) pauseBtn.innerHTML = '<span class="turn-icon">⏸</span>';
       break;
     case 'paused':
+      // Show resume button, keep turn controls visible
       combatToggleBtn.textContent = 'Resume';
-      combatToggleBtn.classList.remove('running');
+      combatToggleBtn.classList.remove('hidden', 'running');
       turnControls.classList.remove('hidden');
+      if (pauseBtn) pauseBtn.innerHTML = '<span class="turn-icon">▶</span>';
       break;
     case 'round_end':
       combatToggleBtn.textContent = 'Start Round ' + (state.round + 1);
-      combatToggleBtn.classList.remove('running');
+      combatToggleBtn.classList.remove('hidden', 'running');
       turnControls.classList.add('hidden');
       break;
   }
@@ -572,7 +622,8 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
           const showRounds = s.roundsRemaining !== null && !s.hideRounds;
           return `
             <span class="status-badge" data-status-id="${s.id}" data-status-name="${s.name}" title="${s.name}${s.roundsRemaining !== null ? ` (${s.roundsRemaining} rounds)` : ''}">
-              ${s.icon}
+              <span class="status-icon">${s.icon}</span>
+              <span class="status-name">${s.name}</span>
               ${showRounds ? `<span class="rounds-badge">${s.roundsRemaining}</span>` : ''}
             </span>
           `;
@@ -603,14 +654,12 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
               </span>
             </div>
           </div>
-          <div class="creature-right">
-            <div class="statuses">
-              ${statusBadges}
-              <button class="add-status-btn" data-action="status" title="Add Status">+</button>
-            </div>
-            <div class="actions">
-              <button class="action-btn" data-action="clone" title="Clone">📋</button>
-            </div>
+          <div class="statuses">
+            ${statusBadges}
+            <button class="add-status-btn" data-action="status" title="Add Status">+</button>
+          </div>
+          <div class="actions">
+            <button class="action-btn" data-action="clone" title="Clone">📋</button>
           </div>
         </div>
       `;
@@ -648,7 +697,7 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
     });
   });
 
-  // Add click handlers for status badges (to remove)
+  // Add click handlers for status badges (to edit/remove)
   creatureList.querySelectorAll('.status-badge').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -656,7 +705,7 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
       const creatureId = creatureEl.dataset.creatureId!;
       const statusId = (el as HTMLElement).dataset.statusId!;
       const statusName = (el as HTMLElement).dataset.statusName!;
-      showClearStatusModal(creatureId, statusId, statusName);
+      showEditStatusModal(creatureId, statusId, statusName);
     });
   });
 }
@@ -697,44 +746,52 @@ async function handleCreatureAction(action: string, creatureId: string) {
   }
 }
 
-// Show clear status confirmation modal
-let clearStatusCreatureId: string | null = null;
-let clearStatusId: string | null = null;
+// Show edit status modal
+let editStatusCreatureId: string | null = null;
+let editStatusId: string | null = null;
 
-function showClearStatusModal(creatureId: string, statusId: string, statusName: string) {
+function showEditStatusModal(creatureId: string, statusId: string, statusName: string) {
   const creature = currentRoom?.state.creatures.find((c) => c.id === creatureId);
   if (!creature) return;
 
-  clearStatusCreatureId = creatureId;
-  clearStatusId = statusId;
+  const status = creature.statusEffects.find((s) => s.id === statusId);
+  if (!status) return;
 
-  const clearStatusNameEl = document.getElementById('clear-status-name');
-  const clearStatusCreatureEl = document.getElementById('clear-status-creature');
+  editStatusCreatureId = creatureId;
+  editStatusId = statusId;
 
-  if (clearStatusNameEl) clearStatusNameEl.textContent = statusName;
-  if (clearStatusCreatureEl) clearStatusCreatureEl.textContent = creature.displayName || creature.name;
+  const editStatusIconEl = document.getElementById('edit-status-icon');
+  const editStatusNameEl = document.getElementById('edit-status-name');
+  const editStatusCreatureEl = document.getElementById('edit-status-creature');
+  const editStatusRoundsEl = document.getElementById('edit-status-rounds') as HTMLInputElement;
 
-  const clearStatusModal = document.getElementById('clear-status-modal') as HTMLDivElement;
-  showModal(clearStatusModal);
+  if (editStatusIconEl) editStatusIconEl.textContent = status.icon;
+  if (editStatusNameEl) editStatusNameEl.textContent = statusName;
+  if (editStatusCreatureEl) editStatusCreatureEl.textContent = creature.displayName || creature.name;
+  if (editStatusRoundsEl) {
+    editStatusRoundsEl.value = status.roundsRemaining !== null ? String(status.roundsRemaining) : '';
+  }
+
+  const editStatusModal = document.getElementById('edit-status-modal') as HTMLDivElement;
+  showModal(editStatusModal);
 }
 
-// Render status grid with condition options
+// Render status grid with all status options including Unconscious/Dead
 function renderStatusGrid() {
-  // Add condition statuses at the top
+  // Condition statuses at the top (these sync the condition field automatically)
   const conditionStatuses = [
-    { name: 'Unconscious', icon: '😵', color: '#6b7280', isCondition: true },
-    { name: 'Dead', icon: '💀', color: '#374151', isCondition: true },
+    { name: 'Unconscious', icon: '😵', color: '#ef4444' },
+    { name: 'Dead', icon: '💀', color: '#374151' },
   ];
 
-  const allStatuses = [...conditionStatuses, ...PREDEFINED_STATUSES.map(s => ({ ...s, isCondition: false }))];
+  const allStatuses = [...conditionStatuses, ...PREDEFINED_STATUSES];
 
   statusGrid.innerHTML = allStatuses.map(
     (status) => `
-      <div class="status-option ${selectedStatusName === status.name ? 'selected' : ''} ${status.isCondition ? 'condition-status' : ''}"
+      <div class="status-option ${selectedStatusName === status.name ? 'selected' : ''}"
            data-status-name="${status.name}"
            data-status-icon="${status.icon}"
-           data-status-color="${status.color}"
-           data-is-condition="${status.isCondition}">
+           data-status-color="${status.color}">
         <span class="icon">${status.icon}</span>
         <span class="name">${status.name}</span>
       </div>
@@ -748,23 +805,12 @@ function renderStatusGrid() {
       const statusName = (option as HTMLDivElement).dataset.statusName!;
       const statusIcon = (option as HTMLDivElement).dataset.statusIcon!;
       const statusColor = (option as HTMLDivElement).dataset.statusColor!;
-      const isCondition = (option as HTMLDivElement).dataset.isCondition === 'true';
       const hideRoundsCheckbox = document.getElementById('status-hide-rounds') as HTMLInputElement;
       const rounds = statusRoundsInput.value ? parseInt(statusRoundsInput.value) : null;
       const hideRounds = hideRoundsCheckbox?.checked || false;
 
-      // Handle condition changes
-      if (isCondition) {
-        const newCondition = statusName === 'Unconscious' ? 'unconscious' : statusName === 'Dead' ? 'dead' : 'active';
-        await sendCommand(roomId, {
-          type: 'UPDATE_CREATURE',
-          payload: { creatureId: selectedCreatureId, updates: { condition: newCondition as 'active' | 'unconscious' | 'dead' } },
-          clientId,
-        });
-        hideModal(statusModal);
-        return;
-      }
-
+      // All statuses (including Unconscious/Dead) are now added via ADD_STATUS
+      // The command processor syncs the condition field automatically
       const status: Omit<StatusEffect, 'id'> = {
         name: statusName,
         icon: statusIcon,
@@ -976,7 +1022,8 @@ function startTimerLoop() {
 
 function updateTimers(room: Room) {
   const state = room.state;
-  const now = Date.now();
+  // Round to second precision so all timers update together visually
+  const now = Math.floor(Date.now() / 1000) * 1000;
 
   // Total time
   let totalMs = state.totalTimeMs;

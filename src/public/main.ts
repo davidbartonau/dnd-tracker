@@ -390,8 +390,18 @@ async function processCommand(cmd: CommandWithId) {
       const payload = cmd.payload as AddStatusPayload;
       creatures = creatures.map((c) => {
         if (c.id !== payload.creatureId) return c;
+
+        // Sync condition field for Unconscious/Dead statuses
+        let newCondition = c.condition;
+        if (payload.status.name === 'Unconscious') {
+          newCondition = 'unconscious';
+        } else if (payload.status.name === 'Dead') {
+          newCondition = 'dead';
+        }
+
         return {
           ...c,
+          condition: newCondition,
           statusEffects: [
             ...c.statusEffects,
             { ...payload.status, id: generateId() },
@@ -406,9 +416,26 @@ async function processCommand(cmd: CommandWithId) {
       const payload = cmd.payload as RemoveStatusPayload;
       creatures = creatures.map((c) => {
         if (c.id !== payload.creatureId) return c;
+
+        const removedStatus = c.statusEffects.find((s) => s.id === payload.statusId);
+        const newStatusEffects = c.statusEffects.filter((s) => s.id !== payload.statusId);
+
+        // Sync condition field when removing Unconscious/Dead statuses
+        let newCondition = c.condition;
+        if (removedStatus?.name === 'Unconscious' || removedStatus?.name === 'Dead') {
+          // Only set to active if no other Unconscious/Dead status remains
+          const hasOtherConditionStatus = newStatusEffects.some(
+            (s) => s.name === 'Unconscious' || s.name === 'Dead'
+          );
+          if (!hasOtherConditionStatus) {
+            newCondition = 'active';
+          }
+        }
+
         return {
           ...c,
-          statusEffects: c.statusEffects.filter((s) => s.id !== payload.statusId),
+          condition: newCondition,
+          statusEffects: newStatusEffects,
         };
       });
       await updateCreatures(roomId, creatures);
@@ -494,7 +521,8 @@ function stopTimerLoop() {
 
 // Update timer displays
 function updateTimers(state: RoomState) {
-  const now = Date.now();
+  // Round to second precision so all timers update together visually
+  const now = Math.floor(Date.now() / 1000) * 1000;
 
   // Total time
   let totalMs = state.totalTimeMs;
@@ -566,6 +594,7 @@ function renderInitiativeList(state: RoomState) {
           return `
             <span class="status-badge" style="border-color: ${s.color}" title="${s.name}${s.roundsRemaining !== null ? ` (${s.roundsRemaining} rounds)` : ''}">
               <span class="status-icon">${s.icon}</span>
+              <span class="status-name">${s.name}</span>
               ${showRounds ? `<span class="rounds-badge">${s.roundsRemaining}</span>` : ''}
             </span>
           `;
