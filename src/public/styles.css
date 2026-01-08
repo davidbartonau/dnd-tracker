@@ -185,65 +185,6 @@ body {
   border-radius: 0.25rem;
 }
 
-/* PC Bar */
-.pc-bar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--bg-card);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.pc-bar.hidden {
-  display: none;
-}
-
-.pc-bar-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.pc-list {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.pc-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.75rem;
-  background: var(--bg-dark);
-  border-radius: 0.5rem;
-  border-left: 3px solid var(--player-highlight);
-}
-
-.pc-item.current-turn {
-  background: var(--bg-card-active);
-  border-color: var(--current-turn);
-  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
-}
-
-.pc-item .pc-icon {
-  font-size: 1.25rem;
-}
-
-.pc-item .pc-name {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.pc-item .pc-init {
-  font-size: 0.75rem;
-  color: var(--accent-purple);
-  font-weight: 700;
-}
-
 /* Initiative List */
 .initiative-list {
   flex: 1;

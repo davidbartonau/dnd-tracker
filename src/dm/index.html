@@ -93,6 +93,7 @@
       <div class="dm-footer">
         <div class="footer-left">
           <span id="dm-room-id" class="room-badge-footer"></span>
+          <span id="build-info" class="build-info"></span>
         </div>
         <div class="footer-right">
           <button id="ai-scan-btn" class="btn btn-ai-footer hidden" title="Scan monster stat block with AI">📷</button>
@@ -227,15 +228,23 @@
       </div>
     </div>
 
-    <!-- Confirm Clear Status Modal -->
-    <div id="clear-status-modal" class="modal hidden">
+    <!-- Edit Status Modal -->
+    <div id="edit-status-modal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-content modal-content-small">
-        <h2>Remove Status?</h2>
-        <p id="clear-status-text">Remove <span id="clear-status-name"></span> from <span id="clear-status-creature"></span>?</p>
+        <h2>Edit Status</h2>
+        <div class="status-target">
+          <span id="edit-status-icon"></span>
+          <span id="edit-status-name"></span> on <span id="edit-status-creature"></span>
+        </div>
+        <div class="form-group">
+          <label for="edit-status-rounds">Rounds remaining:</label>
+          <input type="number" id="edit-status-rounds" min="0" placeholder="Indefinite (leave empty)">
+        </div>
         <div class="modal-actions">
-          <button id="cancel-clear-status-btn" class="btn btn-secondary">Cancel</button>
-          <button id="confirm-clear-status-btn" class="btn btn-damage">Remove</button>
+          <button id="cancel-edit-status-btn" class="btn btn-secondary">Cancel</button>
+          <button id="remove-status-btn" class="btn btn-damage">Remove</button>
+          <button id="save-status-btn" class="btn btn-primary">Save</button>
         </div>
       </div>
     </div>

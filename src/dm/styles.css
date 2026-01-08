@@ -317,6 +317,13 @@ body {
   border-radius: 0.25rem;
 }
 
+.build-info {
+  font-family: monospace;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
 .btn-add-footer {
   background: var(--accent-blue);
   color: white;
@@ -390,6 +397,10 @@ body {
 .btn-combat {
   background: var(--accent-green);
   color: white;
+}
+
+.btn-combat.hidden {
+  display: none;
 }
 
 .btn-combat:hover:not(:disabled) {
@@ -593,23 +604,19 @@ body {
   color: var(--accent-blue);
 }
 
-/* Status section */
-.creature-item .creature-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-  padding-left: 0.5rem;
-}
-
+/* Status section - positioned after details with gap */
 .creature-item .statuses {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
   align-items: center;
-  margin-left: 2rem;
-  margin-right: auto;
-  padding-right: 1.5rem;
+  margin-left: 1.5rem;
+  flex: 1;
+}
+
+.creature-item .actions {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .creature-item .status-badge {
@@ -626,6 +633,11 @@ body {
 
 .creature-item .status-badge:hover {
   background: var(--bg-card-active);
+}
+
+.creature-item .condition-badge {
+  background: rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--accent-red);
 }
 
 .creature-item .status-badge .rounds-badge {
@@ -1306,11 +1318,5 @@ body {
     font-size: 0.6rem;
     min-width: 1rem;
     height: 1rem;
-  }
-
-  .creature-item .creature-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
   }
 }

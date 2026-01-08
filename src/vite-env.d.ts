@@ -1,5 +1,8 @@
 /// <reference types="vite/client" />
 
+declare const __BUILD_SHA__: string;
+declare const __BUILD_DATE__: string;
+
 interface ImportMetaEnv {
   readonly VITE_FIREBASE_API_KEY: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN: string;
