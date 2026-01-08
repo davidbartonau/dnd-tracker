@@ -617,22 +617,6 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
       const hasGroup = creature.groupId && groupedCreatures[creature.groupId] > 1;
       const groupColor = hasGroup ? getGroupColor(creature.groupId!) : '';
 
-      // Build condition badge if unconscious or dead
-      let conditionBadge = '';
-      if (creature.condition === 'unconscious') {
-        conditionBadge = `
-          <span class="status-badge condition-badge" data-condition="unconscious" title="Unconscious (click to remove)">
-            😵
-          </span>
-        `;
-      } else if (creature.condition === 'dead') {
-        conditionBadge = `
-          <span class="status-badge condition-badge" data-condition="dead" title="Dead (click to remove)">
-            💀
-          </span>
-        `;
-      }
-
       const statusBadges = creature.statusEffects
         .map((s) => {
           const showRounds = s.roundsRemaining !== null && !s.hideRounds;
@@ -670,7 +654,6 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
             </div>
           </div>
           <div class="statuses">
-            ${conditionBadge}
             ${statusBadges}
             <button class="add-status-btn" data-action="status" title="Add Status">+</button>
           </div>
@@ -714,7 +697,7 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
   });
 
   // Add click handlers for status badges (to edit/remove)
-  creatureList.querySelectorAll('.status-badge:not(.condition-badge)').forEach((el) => {
+  creatureList.querySelectorAll('.status-badge').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const creatureEl = (el as HTMLElement).closest('.creature-item') as HTMLDivElement;
@@ -722,24 +705,6 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
       const statusId = (el as HTMLElement).dataset.statusId!;
       const statusName = (el as HTMLElement).dataset.statusName!;
       showEditStatusModal(creatureId, statusId, statusName);
-    });
-  });
-
-  // Add click handlers for condition badges (unconscious/dead)
-  creatureList.querySelectorAll('.condition-badge').forEach((el) => {
-    el.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const creatureEl = (el as HTMLElement).closest('.creature-item') as HTMLDivElement;
-      const creatureId = creatureEl.dataset.creatureId!;
-      const condition = (el as HTMLElement).dataset.condition!;
-      // Set creature back to active
-      if (roomId) {
-        await sendCommand(roomId, {
-          type: 'UPDATE_CREATURE',
-          payload: { creatureId, updates: { condition: 'active' } },
-          clientId,
-        });
-      }
     });
   });
 }
@@ -810,23 +775,22 @@ function showEditStatusModal(creatureId: string, statusId: string, statusName: s
   showModal(editStatusModal);
 }
 
-// Render status grid with condition options
+// Render status grid with all status options including Unconscious/Dead
 function renderStatusGrid() {
-  // Add condition statuses at the top
+  // Condition statuses at the top (these sync the condition field automatically)
   const conditionStatuses = [
-    { name: 'Unconscious', icon: '😵', color: '#6b7280', isCondition: true },
-    { name: 'Dead', icon: '💀', color: '#374151', isCondition: true },
+    { name: 'Unconscious', icon: '😵', color: '#ef4444' },
+    { name: 'Dead', icon: '💀', color: '#374151' },
   ];
 
-  const allStatuses = [...conditionStatuses, ...PREDEFINED_STATUSES.map(s => ({ ...s, isCondition: false }))];
+  const allStatuses = [...conditionStatuses, ...PREDEFINED_STATUSES];
 
   statusGrid.innerHTML = allStatuses.map(
     (status) => `
-      <div class="status-option ${selectedStatusName === status.name ? 'selected' : ''} ${status.isCondition ? 'condition-status' : ''}"
+      <div class="status-option ${selectedStatusName === status.name ? 'selected' : ''}"
            data-status-name="${status.name}"
            data-status-icon="${status.icon}"
-           data-status-color="${status.color}"
-           data-is-condition="${status.isCondition}">
+           data-status-color="${status.color}">
         <span class="icon">${status.icon}</span>
         <span class="name">${status.name}</span>
       </div>
@@ -840,23 +804,12 @@ function renderStatusGrid() {
       const statusName = (option as HTMLDivElement).dataset.statusName!;
       const statusIcon = (option as HTMLDivElement).dataset.statusIcon!;
       const statusColor = (option as HTMLDivElement).dataset.statusColor!;
-      const isCondition = (option as HTMLDivElement).dataset.isCondition === 'true';
       const hideRoundsCheckbox = document.getElementById('status-hide-rounds') as HTMLInputElement;
       const rounds = statusRoundsInput.value ? parseInt(statusRoundsInput.value) : null;
       const hideRounds = hideRoundsCheckbox?.checked || false;
 
-      // Handle condition changes
-      if (isCondition) {
-        const newCondition = statusName === 'Unconscious' ? 'unconscious' : statusName === 'Dead' ? 'dead' : 'active';
-        await sendCommand(roomId, {
-          type: 'UPDATE_CREATURE',
-          payload: { creatureId: selectedCreatureId, updates: { condition: newCondition as 'active' | 'unconscious' | 'dead' } },
-          clientId,
-        });
-        hideModal(statusModal);
-        return;
-      }
-
+      // All statuses (including Unconscious/Dead) are now added via ADD_STATUS
+      // The command processor syncs the condition field automatically
       const status: Omit<StatusEffect, 'id'> = {
         name: statusName,
         icon: statusIcon,
