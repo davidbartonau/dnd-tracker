@@ -9,11 +9,12 @@ import {
   query,
   orderBy,
   onSnapshot,
+  getDocs,
   Unsubscribe,
   DocumentReference,
 } from 'firebase/firestore';
 import { getDb } from './firebase.ts';
-import { Room, RoomState, Command, CommandWithId, INITIAL_ROOM_STATE, Creature } from './types.ts';
+import { Room, RoomState, Command, CommandWithId, INITIAL_ROOM_STATE, Creature, LibraryCreature } from './types.ts';
 
 // Create a new room
 export async function createRoom(roomId: string, title: string = 'D&D Initiative Tracker'): Promise<void> {
@@ -183,4 +184,50 @@ export async function deleteCommand(roomId: string, commandId: string): Promise<
   const db = getDb();
   const commandRef = doc(db, 'rooms', roomId, 'commands', commandId);
   await deleteDoc(commandRef);
+}
+
+// ====== Creature Library Functions ======
+
+// Save a creature to the user's library
+export async function saveCreatureToLibrary(
+  userId: string,
+  creature: Omit<LibraryCreature, 'id' | 'userId' | 'createdAt'>
+): Promise<string> {
+  const db = getDb();
+  const libraryRef = collection(db, 'users', userId, 'creatureLibrary');
+
+  const libraryCreature: Omit<LibraryCreature, 'id'> = {
+    ...creature,
+    userId,
+    createdAt: Date.now(),
+  };
+
+  const docRef = await addDoc(libraryRef, libraryCreature);
+  return docRef.id;
+}
+
+// Get all creatures from user's library
+export async function getLibraryCreatures(userId: string): Promise<LibraryCreature[]> {
+  const db = getDb();
+  const libraryRef = collection(db, 'users', userId, 'creatureLibrary');
+  const q = query(libraryRef, orderBy('createdAt', 'desc'));
+
+  const snapshot = await getDocs(q);
+  const creatures: LibraryCreature[] = [];
+
+  snapshot.forEach((doc) => {
+    creatures.push({
+      id: doc.id,
+      ...(doc.data() as Omit<LibraryCreature, 'id'>),
+    });
+  });
+
+  return creatures;
+}
+
+// Delete a creature from the library
+export async function deleteLibraryCreature(userId: string, creatureId: string): Promise<void> {
+  const db = getDb();
+  const creatureRef = doc(db, 'users', userId, 'creatureLibrary', creatureId);
+  await deleteDoc(creatureRef);
 }

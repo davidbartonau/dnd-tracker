@@ -184,6 +184,19 @@ export const INITIAL_ROOM_STATE: RoomState = {
   creatures: [],
 };
 
+// Library creature (saved template for reuse)
+export interface LibraryCreature {
+  id: string;
+  userId: string;
+  name: string;
+  icon: string;
+  maxHp: number;
+  ac: number;
+  attacks: Attack[];
+  isPlayer: boolean;
+  createdAt: number;
+}
+
 // Generate unique ID
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

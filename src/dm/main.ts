@@ -1,5 +1,5 @@
 import { generateClientId, initializeFirebase } from '../lib/firebase.ts';
-import { getRoom, subscribeToRoom, sendCommand, updateControllerInfo } from '../lib/firestore.ts';
+import { getRoom, subscribeToRoom, sendCommand, updateControllerInfo, saveCreatureToLibrary, getLibraryCreatures, deleteLibraryCreature } from '../lib/firestore.ts';
 import { decodeQRCode, extractRoomIdFromUrl } from '../lib/qr.ts';
 import { initGoogleAuth, signInWithGoogle, signOutUser, onAuthStateChange, type AuthUser } from '../lib/auth.ts';
 import { imageToBase64, scanMonsterImage, type ScannedMonster } from '../lib/ai.ts';
@@ -9,6 +9,7 @@ import {
   Attack,
   PREDEFINED_STATUSES,
   StatusEffect,
+  LibraryCreature,
 } from '../lib/types.ts';
 
 // App state
@@ -23,6 +24,7 @@ let editingCreatureId: string | null = null;
 let selectedStatusName: string | null = null;
 let timerInterval: number | null = null;
 let pendingScannedMonsters: ScannedMonster[] = [];
+let libraryCreatures: LibraryCreature[] = [];
 
 // DOM Elements
 const loadingScreen = document.getElementById('loading') as HTMLDivElement;
@@ -116,11 +118,13 @@ function updateAuthUI() {
   const authSection = document.getElementById('dm-auth-section');
   const userInfo = document.getElementById('dm-user-info');
   const aiScanBtn = document.getElementById('ai-scan-btn') as HTMLButtonElement;
+  const libraryBtn = document.getElementById('library-btn') as HTMLButtonElement;
+  const saveToLibraryBtn = document.getElementById('save-to-library-btn') as HTMLButtonElement;
 
   if (!authSection || !userInfo || !aiScanBtn) return;
 
   if (currentUser) {
-    // Logged in - hide sign in, show user info, enable AI scan
+    // Logged in - hide sign in, show user info, enable AI scan and library
     authSection.classList.add('hidden');
     userInfo.classList.remove('hidden');
     const avatar = userInfo.querySelector('.user-avatar') as HTMLImageElement;
@@ -130,13 +134,29 @@ function updateAuthUI() {
     aiScanBtn.disabled = false;
     aiScanBtn.classList.remove('disabled');
     aiScanBtn.title = 'Scan Monster Image';
+    if (libraryBtn) {
+      libraryBtn.disabled = false;
+      libraryBtn.classList.remove('disabled');
+      libraryBtn.title = 'Add from creature library';
+    }
+    if (saveToLibraryBtn) {
+      saveToLibraryBtn.classList.remove('hidden');
+    }
   } else {
-    // Not logged in - show sign in, hide user info, disable AI scan
+    // Not logged in - show sign in, hide user info, disable AI scan and library
     authSection.classList.remove('hidden');
     userInfo.classList.add('hidden');
     aiScanBtn.disabled = true;
     aiScanBtn.classList.add('disabled');
     aiScanBtn.title = 'Sign in to use AI scanning';
+    if (libraryBtn) {
+      libraryBtn.disabled = true;
+      libraryBtn.classList.add('disabled');
+      libraryBtn.title = 'Sign in to use creature library';
+    }
+    if (saveToLibraryBtn) {
+      saveToLibraryBtn.classList.add('hidden');
+    }
   }
 }
 
@@ -260,6 +280,39 @@ function setupEventListeners() {
 
   cancelAiScanBtn?.addEventListener('click', () => {
     hideModal(aiScanModal as HTMLDivElement);
+  });
+
+  // Library button
+  const libraryBtn = document.getElementById('library-btn');
+  const libraryModal = document.getElementById('library-modal') as HTMLDivElement;
+  const closeLibraryBtn = document.getElementById('close-library-btn');
+  const librarySearchInput = document.getElementById('library-search-input') as HTMLInputElement;
+
+  libraryBtn?.addEventListener('click', async () => {
+    if (!currentUser) {
+      alert('Please sign in to use the creature library');
+      return;
+    }
+    showModal(libraryModal);
+    await loadLibraryCreatures();
+  });
+
+  closeLibraryBtn?.addEventListener('click', () => {
+    hideModal(libraryModal);
+  });
+
+  librarySearchInput?.addEventListener('input', () => {
+    renderLibraryCreatures(librarySearchInput.value);
+  });
+
+  // Save to Library button
+  const saveToLibraryBtn = document.getElementById('save-to-library-btn');
+  saveToLibraryBtn?.addEventListener('click', async () => {
+    if (!currentUser) {
+      alert('Please sign in to save to library');
+      return;
+    }
+    await saveCurrentCreatureToLibrary();
   });
 
   // Join button
@@ -1169,6 +1222,180 @@ async function addScannedMonster(monster: ScannedMonster) {
     },
     clientId,
   });
+}
+
+// ====== Creature Library Functions ======
+
+// Load library creatures from Firestore
+async function loadLibraryCreatures() {
+  if (!currentUser) return;
+
+  const libraryLoading = document.getElementById('library-loading');
+  const libraryEmpty = document.getElementById('library-empty');
+  const libraryList = document.getElementById('library-list');
+
+  libraryLoading?.classList.remove('hidden');
+  libraryEmpty?.classList.add('hidden');
+  if (libraryList) libraryList.innerHTML = '';
+
+  try {
+    libraryCreatures = await getLibraryCreatures(currentUser.uid);
+    libraryLoading?.classList.add('hidden');
+    renderLibraryCreatures();
+  } catch (error) {
+    console.error('Failed to load library:', error);
+    libraryLoading?.classList.add('hidden');
+    if (libraryList) {
+      libraryList.innerHTML = '<p class="library-empty">Failed to load library. Please try again.</p>';
+    }
+  }
+}
+
+// Render library creatures with optional filter
+function renderLibraryCreatures(filter: string = '') {
+  const libraryEmpty = document.getElementById('library-empty');
+  const libraryList = document.getElementById('library-list');
+
+  if (!libraryList) return;
+
+  const filteredCreatures = filter
+    ? libraryCreatures.filter((c) => c.name.toLowerCase().includes(filter.toLowerCase()))
+    : libraryCreatures;
+
+  if (filteredCreatures.length === 0) {
+    libraryEmpty?.classList.remove('hidden');
+    libraryList.innerHTML = '';
+    return;
+  }
+
+  libraryEmpty?.classList.add('hidden');
+  libraryList.innerHTML = filteredCreatures
+    .map((creature) => `
+      <div class="library-creature" data-creature-id="${creature.id}">
+        <span class="creature-icon">${creature.icon}</span>
+        <div class="creature-info">
+          <div class="creature-name">${creature.name}</div>
+          <div class="creature-stats">
+            <span class="hp">HP: ${creature.maxHp}</span>
+            <span class="ac">AC: ${creature.ac}</span>
+          </div>
+        </div>
+        <div class="creature-actions">
+          <button class="btn btn-delete" data-action="delete" title="Delete from library">🗑️</button>
+          <button class="btn btn-primary" data-action="add">Add</button>
+        </div>
+      </div>
+    `)
+    .join('');
+
+  // Add click handlers
+  libraryList.querySelectorAll('.library-creature .btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const action = (btn as HTMLButtonElement).dataset.action;
+      const creatureEl = btn.closest('.library-creature') as HTMLDivElement;
+      const creatureId = creatureEl.dataset.creatureId!;
+
+      if (action === 'add') {
+        const creature = libraryCreatures.find((c) => c.id === creatureId);
+        if (creature) {
+          await addLibraryCreatureToInitiative(creature);
+          (btn as HTMLButtonElement).disabled = true;
+          (btn as HTMLButtonElement).textContent = 'Added';
+        }
+      } else if (action === 'delete') {
+        if (confirm(`Delete "${libraryCreatures.find((c) => c.id === creatureId)?.name}" from library?`)) {
+          await deleteFromLibrary(creatureId);
+        }
+      }
+    });
+  });
+}
+
+// Add library creature to initiative
+async function addLibraryCreatureToInitiative(creature: LibraryCreature) {
+  if (!roomId) return;
+
+  await sendCommand(roomId, {
+    type: 'ADD_CREATURE',
+    payload: {
+      creature: {
+        name: creature.name,
+        displayName: creature.name,
+        initiative: 0, // Will need to be set manually or rolled
+        icon: creature.icon,
+        maxHp: creature.maxHp,
+        currentHp: creature.maxHp,
+        ac: creature.ac,
+        condition: 'active',
+        statusEffects: [],
+        attacks: creature.attacks,
+        isPlayer: creature.isPlayer,
+        groupId: null,
+      },
+    },
+    clientId,
+  });
+}
+
+// Save current creature form data to library
+async function saveCurrentCreatureToLibrary() {
+  if (!currentUser) return;
+
+  const name = (document.getElementById('creature-name') as HTMLInputElement).value.trim();
+  const icon = (document.getElementById('creature-icon') as HTMLSelectElement).value;
+  const hp = parseInt((document.getElementById('creature-hp') as HTMLInputElement).value);
+  const ac = parseInt((document.getElementById('creature-ac') as HTMLInputElement).value);
+  const isPlayer = (document.getElementById('creature-is-player') as HTMLInputElement).checked;
+
+  if (!name || isNaN(hp) || isNaN(ac)) {
+    alert('Please fill in name, HP, and AC before saving to library');
+    return;
+  }
+
+  // Gather attacks
+  const attacks: Attack[] = [];
+  const attacksContainer = document.getElementById('attacks-container');
+  attacksContainer?.querySelectorAll('.attack-entry').forEach((entry) => {
+    const attackName = (entry.querySelector('.attack-name') as HTMLInputElement).value.trim();
+    if (attackName) {
+      attacks.push({
+        name: attackName,
+        attackBonus: (entry.querySelector('.attack-bonus') as HTMLInputElement).value.trim(),
+        damage: (entry.querySelector('.attack-damage') as HTMLInputElement).value.trim(),
+        details: (entry.querySelector('.attack-details') as HTMLInputElement).value.trim(),
+      });
+    }
+  });
+
+  try {
+    await saveCreatureToLibrary(currentUser.uid, {
+      name,
+      icon,
+      maxHp: hp,
+      ac,
+      attacks,
+      isPlayer,
+    });
+    alert(`"${name}" saved to library!`);
+  } catch (error) {
+    console.error('Failed to save to library:', error);
+    alert('Failed to save to library. Please try again.');
+  }
+}
+
+// Delete creature from library
+async function deleteFromLibrary(creatureId: string) {
+  if (!currentUser) return;
+
+  try {
+    await deleteLibraryCreature(currentUser.uid, creatureId);
+    libraryCreatures = libraryCreatures.filter((c) => c.id !== creatureId);
+    renderLibraryCreatures((document.getElementById('library-search-input') as HTMLInputElement)?.value || '');
+  } catch (error) {
+    console.error('Failed to delete from library:', error);
+    alert('Failed to delete from library. Please try again.');
+  }
 }
 
 // Start the app

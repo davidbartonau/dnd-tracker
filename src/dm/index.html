@@ -96,6 +96,7 @@
           <span id="build-info" class="build-info"></span>
         </div>
         <div class="footer-right">
+          <button id="library-btn" class="btn btn-library-footer hidden disabled" title="Sign in to use creature library">📥</button>
           <button id="ai-scan-btn" class="btn btn-ai-footer hidden" title="Scan monster stat block with AI">📷</button>
           <button id="add-creature-btn" class="btn btn-add-footer">+ Add</button>
         </div>
@@ -163,9 +164,12 @@
             <button type="button" id="add-attack-btn" class="btn btn-secondary btn-small">+ Add Attack</button>
           </div>
 
-          <div class="modal-actions">
-            <button type="button" id="cancel-creature-btn" class="btn btn-secondary">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save</button>
+          <div class="modal-actions modal-actions-split">
+            <button type="button" id="save-to-library-btn" class="btn btn-secondary hidden" title="Save to Library">📚 Library</button>
+            <div class="modal-actions-right">
+              <button type="button" id="cancel-creature-btn" class="btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save</button>
+            </div>
           </div>
         </form>
       </div>
@@ -300,6 +304,36 @@
         <div class="modal-actions">
           <button type="button" id="cancel-ai-scan-btn" class="btn btn-secondary">Close</button>
           <button type="button" id="start-ai-scan-btn" class="btn btn-primary" disabled>Scan Image</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Library Modal -->
+    <div id="library-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content library-modal-content">
+        <h2>Creature Library</h2>
+        <p class="library-description">Select a creature from your saved library to add to the initiative.</p>
+
+        <div class="library-search">
+          <input type="text" id="library-search-input" placeholder="Filter by name..." autocomplete="off">
+        </div>
+
+        <div id="library-loading" class="library-loading hidden">
+          <div class="loading-spinner"></div>
+          <span>Loading library...</span>
+        </div>
+
+        <div id="library-empty" class="library-empty hidden">
+          <p>Your library is empty. Save creatures from the edit screen to build your library.</p>
+        </div>
+
+        <div id="library-list" class="library-list">
+          <!-- Library creatures rendered here -->
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="close-library-btn" class="btn btn-secondary">Close</button>
         </div>
       </div>
     </div>
