@@ -468,6 +468,16 @@ body {
 .creature-item.current-turn {
   border-color: var(--current-turn);
   background: var(--bg-card-active);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(251, 191, 36, 0.3);
+  }
 }
 
 .creature-item.is-player {
@@ -604,35 +614,46 @@ body {
   color: var(--accent-blue);
 }
 
-/* Status section - positioned after details with gap */
+/* Status section - positioned with min gap from details */
 .creature-item .statuses {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
   align-items: center;
-  margin-left: 1.5rem;
-  flex: 1;
+  margin-left: 6rem;
+  flex-shrink: 0;
 }
 
 .creature-item .actions {
-  margin-left: auto;
+  margin-left: 1rem;
   flex-shrink: 0;
 }
 
 .creature-item .status-badge {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
+  gap: 0.25rem;
   background: var(--bg-dark);
-  padding: 0.125rem 0.25rem;
+  padding: 0.2rem 0.4rem;
   border-radius: 0.25rem;
   cursor: pointer;
   font-size: 0.875rem;
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .creature-item .status-badge:hover {
   background: var(--bg-card-active);
+}
+
+.creature-item .status-badge .status-icon {
+  font-size: 1rem;
+}
+
+.creature-item .status-badge .status-name {
+  display: none;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .creature-item .condition-badge {
@@ -1008,6 +1029,10 @@ body {
   gap: 0.5rem;
 }
 
+.auth-section.hidden {
+  display: none;
+}
+
 .btn-google-small {
   background: var(--bg-dark);
   color: var(--text-primary);
@@ -1308,15 +1333,21 @@ body {
     max-width: 120px;
   }
 
-  /* Larger status badges on wide screens */
-  .creature-item .status-badge {
-    font-size: 1.25rem;
-    padding: 0.25rem;
+  /* Show status names on wide screens */
+  .creature-item .status-badge .status-name {
+    display: inline;
   }
 
   .creature-item .status-badge .rounds-badge {
     font-size: 0.6rem;
     min-width: 1rem;
     height: 1rem;
+  }
+}
+
+/* On very wide screens, collapse names if too many statuses to prevent wrapping */
+@media (min-width: 768px) {
+  .creature-item .statuses:has(.status-badge:nth-child(4)) .status-name {
+    display: none;
   }
 }

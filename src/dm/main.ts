@@ -622,7 +622,8 @@ function renderCreatureList(creatures: Creature[], currentCreatureId: string | n
           const showRounds = s.roundsRemaining !== null && !s.hideRounds;
           return `
             <span class="status-badge" data-status-id="${s.id}" data-status-name="${s.name}" title="${s.name}${s.roundsRemaining !== null ? ` (${s.roundsRemaining} rounds)` : ''}">
-              ${s.icon}
+              <span class="status-icon">${s.icon}</span>
+              <span class="status-name">${s.name}</span>
               ${showRounds ? `<span class="rounds-badge">${s.roundsRemaining}</span>` : ''}
             </span>
           `;
