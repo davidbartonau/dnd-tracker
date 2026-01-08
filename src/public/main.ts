@@ -521,7 +521,8 @@ function stopTimerLoop() {
 
 // Update timer displays
 function updateTimers(state: RoomState) {
-  const now = Date.now();
+  // Round to second precision so all timers update together visually
+  const now = Math.floor(Date.now() / 1000) * 1000;
 
   // Total time
   let totalMs = state.totalTimeMs;

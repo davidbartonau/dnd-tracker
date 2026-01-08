@@ -453,7 +453,8 @@ body {
   background: var(--bg-card);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: 2.5rem 2.5rem minmax(100px, 200px) 1fr auto;
   align-items: center;
   gap: 1rem;
   cursor: grab;
@@ -613,18 +614,15 @@ body {
   color: var(--accent-blue);
 }
 
-/* Status section - positioned with min gap from details */
+/* Status section - in grid column 4 */
 .creature-item .statuses {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
   align-items: center;
-  margin-left: 6rem;
 }
 
 .creature-item .actions {
-  margin-left: auto;
-  padding-left: 1rem;
   flex-shrink: 0;
 }
 
