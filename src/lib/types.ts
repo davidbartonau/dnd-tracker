@@ -101,6 +101,7 @@ export type CommandType =
   | 'END_ROUND'
   | 'START_NEW_ROUND'
   | 'RESET_COMBAT'
+  | 'NEW_BATTLE'
   | 'UPDATE_HP'
   | 'ADD_STATUS'
   | 'REMOVE_STATUS';

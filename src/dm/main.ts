@@ -463,6 +463,20 @@ function setupEventListeners() {
     hideModal(cloneModal);
   });
 
+  // New Battle button
+  const newBattleBtn = document.getElementById('new-battle-btn');
+  newBattleBtn?.addEventListener('click', async () => {
+    if (!roomId) return;
+    if (!confirm('Start a new battle? This will remove all monsters but keep player characters.')) {
+      return;
+    }
+    await sendCommand(roomId, {
+      type: 'NEW_BATTLE',
+      payload: {},
+      clientId,
+    });
+  });
+
   // Edit status modal
   const cancelEditStatusBtn = document.getElementById('cancel-edit-status-btn');
   const removeStatusBtn = document.getElementById('remove-status-btn');

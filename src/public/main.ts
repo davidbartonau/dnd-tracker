@@ -358,6 +358,45 @@ async function processCommand(cmd: CommandWithId) {
       break;
     }
 
+    case 'NEW_BATTLE': {
+      stopTimerLoop();
+      // Keep only player characters, remove monsters
+      // For PCs, remove status effects with round numbers but keep indefinite ones
+      creatures = creatures
+        .filter((c) => c.isPlayer)
+        .map((c) => {
+          // Remove timed status effects, keep indefinite ones
+          const newStatusEffects = c.statusEffects.filter((s) => s.roundsRemaining === null);
+
+          // Update condition if Unconscious/Dead was removed
+          let newCondition = c.condition;
+          if (newCondition === 'unconscious' || newCondition === 'dead') {
+            const hasConditionStatus = newStatusEffects.some(
+              (s) => s.name === 'Unconscious' || s.name === 'Dead'
+            );
+            if (!hasConditionStatus) {
+              newCondition = 'active';
+            }
+          }
+
+          return {
+            ...c,
+            condition: newCondition,
+            statusEffects: newStatusEffects,
+          };
+        });
+      await updateCreatures(roomId, creatures);
+      await updateRoomState(roomId, {
+        status: 'setup',
+        round: 0,
+        currentCreatureId: null,
+        totalTimeMs: 0,
+        roundStartTimeMs: null,
+        turnStartTimeMs: null,
+      });
+      break;
+    }
+
     case 'UPDATE_HP': {
       const payload = cmd.payload as UpdateHpPayload;
       creatures = creatures.map((c) => {
@@ -483,15 +522,31 @@ function getPrevActiveCreature(creatures: Creature[], currentIndex: number): Cre
 
 // Decrement status effect rounds at end of round
 function decrementStatusRounds(creatures: Creature[]): Creature[] {
-  return creatures.map((c) => ({
-    ...c,
-    statusEffects: c.statusEffects
+  return creatures.map((c) => {
+    const newStatusEffects = c.statusEffects
       .map((s) => ({
         ...s,
         roundsRemaining: s.roundsRemaining !== null ? s.roundsRemaining - 1 : null,
       }))
-      .filter((s) => s.roundsRemaining === null || s.roundsRemaining > 0),
-  }));
+      .filter((s) => s.roundsRemaining === null || s.roundsRemaining > 0);
+
+    // Update condition if Unconscious/Dead status was removed due to rounds expiring
+    let newCondition = c.condition;
+    if (newCondition === 'unconscious' || newCondition === 'dead') {
+      const hasConditionStatus = newStatusEffects.some(
+        (s) => s.name === 'Unconscious' || s.name === 'Dead'
+      );
+      if (!hasConditionStatus) {
+        newCondition = 'active';
+      }
+    }
+
+    return {
+      ...c,
+      condition: newCondition,
+      statusEffects: newStatusEffects,
+    };
+  });
 }
 
 // Calculate total combat time
